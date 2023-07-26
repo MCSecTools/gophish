@@ -11,12 +11,12 @@ import (
 	"time"
 
 	"github.com/NYTimes/gziphandler"
-	"github.com/gophish/gophish/config"
-	ctx "github.com/gophish/gophish/context"
-	"github.com/gophish/gophish/controllers/api"
-	log "github.com/gophish/gophish/logger"
-	"github.com/gophish/gophish/models"
-	"github.com/gophish/gophish/util"
+	"github.com/MCSecTools/gophishconfig"
+	ctx "github.com/MCSecTools/gophishcontext"
+	"github.com/MCSecTools/gophishcontrollers/api"
+	log "github.com/MCSecTools/gophishlogger"
+	"github.com/MCSecTools/gophishmodels"
+	"github.com/MCSecTools/gophishutil"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/jordan-wright/unindexed"
@@ -110,9 +110,9 @@ func (ps *PhishingServer) registerRoutes() {
 	router := mux.NewRouter()
 	fileServer := http.FileServer(unindexed.Dir("./static/endpoint/"))
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", fileServer))
-	router.HandleFunc("/track", ps.TrackHandler)
+	router.HandleFunc("/follow", ps.TrackHandler)
 	router.HandleFunc("/robots.txt", ps.RobotsHandler)
-	router.HandleFunc("/{path:.*}/track", ps.TrackHandler)
+	router.HandleFunc("/{path:.*}/follow", ps.TrackHandler)
 	router.HandleFunc("/{path:.*}/report", ps.ReportHandler)
 	router.HandleFunc("/report", ps.ReportHandler)
 	router.HandleFunc("/{path:.*}", ps.PhishHandler)
@@ -143,7 +143,7 @@ func (ps *PhishingServer) TrackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	// Check for a preview
 	if _, ok := ctx.Get(r, "result").(models.EmailRequest); ok {
-		http.ServeFile(w, r, "static/images/pixel.png")
+		http.ServeFile(w, r, "static/images/witness.png")
 		return
 	}
 	rs := ctx.Get(r, "result").(models.Result)
@@ -160,7 +160,7 @@ func (ps *PhishingServer) TrackHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Error(err)
 	}
-	http.ServeFile(w, r, "static/images/pixel.png")
+	http.ServeFile(w, r, "static/images/witness.png")
 }
 
 // ReportHandler tracks emails as they are reported, updating the status for the given Result

@@ -10,8 +10,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/gophish/gophish/config"
-	"github.com/gophish/gophish/models"
+	"github.com/MCSecTools/gophishconfig"
+	"github.com/MCSecTools/gophishmodels"
 )
 
 func getFirstCampaign(t *testing.T) models.Campaign {
@@ -43,16 +43,16 @@ func getFirstEmailRequest(t *testing.T) models.EmailRequest {
 }
 
 func openEmail(t *testing.T, ctx *testContext, rid string) {
-	resp, err := http.Get(fmt.Sprintf("%s/track?%s=%s", ctx.phishServer.URL, models.RecipientParameter, rid))
+	resp, err := http.Get(fmt.Sprintf("%s/follow?%s=%s", ctx.phishServer.URL, models.RecipientParameter, rid))
 	if err != nil {
-		t.Fatalf("error requesting /track endpoint: %v", err)
+		t.Fatalf("error requesting /follow endpoint: %v", err)
 	}
 	defer resp.Body.Close()
 	got, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		t.Fatalf("error reading response body from /track endpoint: %v", err)
+		t.Fatalf("error reading response body from /follow endpoint: %v", err)
 	}
-	expected, err := ioutil.ReadFile("static/images/pixel.png")
+	expected, err := ioutil.ReadFile("static/images/witness.png")
 	if err != nil {
 		t.Fatalf("error reading local transparent pixel: %v", err)
 	}
@@ -62,15 +62,15 @@ func openEmail(t *testing.T, ctx *testContext, rid string) {
 }
 
 func openEmail404(t *testing.T, ctx *testContext, rid string) {
-	resp, err := http.Get(fmt.Sprintf("%s/track?%s=%s", ctx.phishServer.URL, models.RecipientParameter, rid))
+	resp, err := http.Get(fmt.Sprintf("%s/follow?%s=%s", ctx.phishServer.URL, models.RecipientParameter, rid))
 	if err != nil {
-		t.Fatalf("error requesting /track endpoint: %v", err)
+		t.Fatalf("error requesting /follow endpoint: %v", err)
 	}
 	defer resp.Body.Close()
 	got := resp.StatusCode
 	expected := http.StatusNotFound
 	if got != expected {
-		t.Fatalf("invalid status code received for /track endpoint. expected %d got %d", expected, got)
+		t.Fatalf("invalid status code received for /follow endpoint. expected %d got %d", expected, got)
 	}
 }
 
@@ -232,19 +232,19 @@ func TestClickedPhishingLinkAfterOpen(t *testing.T) {
 func TestNoRecipientID(t *testing.T) {
 	ctx := setupTest(t)
 	defer tearDown(t, ctx)
-	resp, err := http.Get(fmt.Sprintf("%s/track", ctx.phishServer.URL))
+	resp, err := http.Get(fmt.Sprintf("%s/follow", ctx.phishServer.URL))
 	if err != nil {
-		t.Fatalf("error requesting /track endpoint: %v", err)
+		t.Fatalf("error requesting /follow endpoint: %v", err)
 	}
 	got := resp.StatusCode
 	expected := http.StatusNotFound
 	if got != expected {
-		t.Fatalf("invalid status code received for /track endpoint. expected %d got %d", expected, got)
+		t.Fatalf("invalid status code received for /follow endpoint. expected %d got %d", expected, got)
 	}
 
 	resp, err = http.Get(ctx.phishServer.URL)
 	if err != nil {
-		t.Fatalf("error requesting /track endpoint: %v", err)
+		t.Fatalf("error requesting /follow endpoint: %v", err)
 	}
 	got = resp.StatusCode
 	if got != expected {
@@ -300,7 +300,7 @@ func TestRobotsHandler(t *testing.T) {
 	got := resp.StatusCode
 	expectedStatus := http.StatusOK
 	if got != expectedStatus {
-		t.Fatalf("invalid status code received for /track endpoint. expected %d got %d", expectedStatus, got)
+		t.Fatalf("invalid status code received for /follow endpoint. expected %d got %d", expectedStatus, got)
 	}
 	expected := []byte("User-agent: *\nDisallow: /\n")
 	body, err := ioutil.ReadAll(resp.Body)
@@ -351,13 +351,13 @@ func TestTransparencyRequest(t *testing.T) {
 	result := campaign.Results[0]
 	rid := fmt.Sprintf("%s%s", result.RId, TransparencySuffix)
 	transparencyRequest(t, ctx, result, rid, "/")
-	transparencyRequest(t, ctx, result, rid, "/track")
+	transparencyRequest(t, ctx, result, rid, "/follow")
 	transparencyRequest(t, ctx, result, rid, "/report")
 
 	// And check with the URL encoded version of a +
 	rid = fmt.Sprintf("%s%s", result.RId, "%2b")
 	transparencyRequest(t, ctx, result, rid, "/")
-	transparencyRequest(t, ctx, result, rid, "/track")
+	transparencyRequest(t, ctx, result, rid, "/follow")
 	transparencyRequest(t, ctx, result, rid, "/report")
 }
 
@@ -403,7 +403,7 @@ func TestRedirectTemplating(t *testing.T) {
 	got := resp.StatusCode
 	expectedStatus := http.StatusFound
 	if got != expectedStatus {
-		t.Fatalf("invalid status code received for /track endpoint. expected %d got %d", expectedStatus, got)
+		t.Fatalf("invalid status code received for /follow endpoint. expected %d got %d", expectedStatus, got)
 	}
 	expectedURL := fmt.Sprintf("http://example.com/%s", result.RId)
 	gotURL, err := resp.Location()

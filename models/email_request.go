@@ -5,9 +5,9 @@ import (
 	"net/mail"
 
 	"github.com/gophish/gomail"
-	"github.com/gophish/gophish/config"
-	log "github.com/gophish/gophish/logger"
-	"github.com/gophish/gophish/mailer"
+	"github.com/MCSecTools/gophishconfig"
+	log "github.com/MCSecTools/gophishlogger"
+	"github.com/MCSecTools/gophishmailer"
 )
 
 // PreviewPrefix is the standard prefix added to the rid parameter when sending
@@ -120,7 +120,7 @@ func (s *EmailRequest) Generate(msg *gomail.Message) error {
 	// Add the transparency headers
 	msg.SetHeader("X-Mailer", config.ServerName)
 	if conf.ContactAddress != "" {
-		msg.SetHeader("X-Gophish-Contact", conf.ContactAddress)
+		msg.SetHeader("X-Mailer-Contact", conf.ContactAddress)
 	}
 
 	// Parse the customHeader templates

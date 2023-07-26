@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"github.com/gophish/gomail"
-	"github.com/gophish/gophish/config"
-	log "github.com/gophish/gophish/logger"
-	"github.com/gophish/gophish/mailer"
+	"github.com/MCSecTools/gophishconfig"
+	log "github.com/MCSecTools/gophishlogger"
+	"github.com/MCSecTools/gophishmailer"
 )
 
 // MaxSendAttempts set to 8 since we exponentially backoff after each failed send
@@ -199,7 +199,7 @@ func (m *MailLog) Generate(msg *gomail.Message) error {
 	// Add the transparency headers
 	msg.SetHeader("X-Mailer", config.ServerName)
 	if conf.ContactAddress != "" {
-		msg.SetHeader("X-Gophish-Contact", conf.ContactAddress)
+		msg.SetHeader("X-Mailer-Contact", conf.ContactAddress)
 	}
 
 	// Add Message-Id header as described in RFC 2822.

@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/gophish/gophish/auth"
-	"github.com/gophish/gophish/config"
-	"github.com/gophish/gophish/models"
+	"github.com/MCSecTools/gophishauth"
+	"github.com/MCSecTools/gophishconfig"
+	"github.com/MCSecTools/gophishmodels"
 )
 
 // testContext is the data required to test API related functions
