@@ -23,8 +23,8 @@ func (s *ModelsSuite) TestAttachment(c *check.C) {
 		},
 		BaseURL:     "http://testurl.com",
 		URL:         "http://testurl.com/?rid=1234567",
-		TrackingURL: "http://testurl.local/track?rid=1234567",
-		Tracker:     "<img alt='' style='display: none' src='http://testurl.local/track?rid=1234567'/>",
+		TrackingURL: "http://testurl.local/follow?rid=1234567",
+		Tracker:     "<img alt='' style='display: none' src='http://testurl.local/follow?rid=1234567'/>",
 		From:        "From Address",
 		RId:         "1234567",
 	}
