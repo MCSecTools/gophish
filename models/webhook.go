@@ -3,7 +3,7 @@ package models
 import (
 	"errors"
 
-	log "github.com/MCSecTools/gophishlogger"
+	log "github.com/gophish/gophish/logger"
 )
 
 // Webhook represents the webhook model

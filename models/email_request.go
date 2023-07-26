@@ -5,12 +5,12 @@ import (
 	"net/mail"
 
 	"github.com/gophish/gomail"
-	"github.com/MCSecTools/gophishconfig"
-	log "github.com/MCSecTools/gophishlogger"
-	"github.com/MCSecTools/gophishmailer"
+	"github.com/gophish/gophish/config"
+	log "github.com/gophish/gophish/logger"
+	"github.com/gophish/gophish/mailer"
 )
 
-// PreviewPrefix is the standard prefix added to the rid parameter when sending
+// PreviewPrefix is the standard prefix added to the postId parameter when sending
 // test emails.
 const PreviewPrefix = "preview-"
 
@@ -81,15 +81,15 @@ func (s *EmailRequest) GetSmtpFrom() (string, error) {
 // PostEmailRequest stores a SendTestEmailRequest in the database.
 func PostEmailRequest(s *EmailRequest) error {
 	// Generate an ID to be used in the underlying Result object
-	rid, err := generateResultId()
+	postId, err := generateResultId()
 	if err != nil {
 		return err
 	}
-	s.RId = fmt.Sprintf("%s%s", PreviewPrefix, rid)
+	s.RId = fmt.Sprintf("%s%s", PreviewPrefix, postId)
 	return db.Save(&s).Error
 }
 
-// GetEmailRequestByResultId retrieves the EmailRequest by the underlying rid
+// GetEmailRequestByResultId retrieves the EmailRequest by the underlying postId
 // parameter.
 func GetEmailRequestByResultId(id string) (EmailRequest, error) {
 	s := EmailRequest{}

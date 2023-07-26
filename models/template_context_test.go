@@ -33,10 +33,10 @@ func (s *ModelsSuite) TestNewTemplateContext(c *check.C) {
 		FromAddress: "From Address <from@example.com>",
 	}
 	expected := PhishingTemplateContext{
-		URL:           fmt.Sprintf("%s?rid=%s", ctx.URL, r.RId),
+		URL:           fmt.Sprintf("%s?postId=%s", ctx.URL, r.RId),
 		BaseURL:       ctx.URL,
 		BaseRecipient: r.BaseRecipient,
-		TrackingURL:   fmt.Sprintf("%s/follow?rid=%s", ctx.URL, r.RId),
+		TrackingURL:   fmt.Sprintf("%s/follow?postId=%s", ctx.URL, r.RId),
 		From:          "From Address",
 		RId:           r.RId,
 	}

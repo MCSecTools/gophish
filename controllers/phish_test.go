@@ -10,8 +10,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/MCSecTools/gophishconfig"
-	"github.com/MCSecTools/gophishmodels"
+	"github.com/gophish/gophish/config"
+	"github.com/gophish/gophish/models"
 )
 
 func getFirstCampaign(t *testing.T) models.Campaign {
@@ -42,8 +42,8 @@ func getFirstEmailRequest(t *testing.T) models.EmailRequest {
 	return req
 }
 
-func openEmail(t *testing.T, ctx *testContext, rid string) {
-	resp, err := http.Get(fmt.Sprintf("%s/follow?%s=%s", ctx.phishServer.URL, models.RecipientParameter, rid))
+func openEmail(t *testing.T, ctx *testContext, postId string) {
+	resp, err := http.Get(fmt.Sprintf("%s/follow?%s=%s", ctx.phishServer.URL, models.RecipientParameter, postId))
 	if err != nil {
 		t.Fatalf("error requesting /follow endpoint: %v", err)
 	}
@@ -61,8 +61,8 @@ func openEmail(t *testing.T, ctx *testContext, rid string) {
 	}
 }
 
-func openEmail404(t *testing.T, ctx *testContext, rid string) {
-	resp, err := http.Get(fmt.Sprintf("%s/follow?%s=%s", ctx.phishServer.URL, models.RecipientParameter, rid))
+func openEmail404(t *testing.T, ctx *testContext, postId string) {
+	resp, err := http.Get(fmt.Sprintf("%s/follow?%s=%s", ctx.phishServer.URL, models.RecipientParameter, postId))
 	if err != nil {
 		t.Fatalf("error requesting /follow endpoint: %v", err)
 	}
@@ -74,8 +74,8 @@ func openEmail404(t *testing.T, ctx *testContext, rid string) {
 	}
 }
 
-func reportedEmail(t *testing.T, ctx *testContext, rid string) {
-	resp, err := http.Get(fmt.Sprintf("%s/report?%s=%s", ctx.phishServer.URL, models.RecipientParameter, rid))
+func reportedEmail(t *testing.T, ctx *testContext, postId string) {
+	resp, err := http.Get(fmt.Sprintf("%s/report?%s=%s", ctx.phishServer.URL, models.RecipientParameter, postId))
 	if err != nil {
 		t.Fatalf("error requesting /report endpoint: %v", err)
 	}
@@ -86,8 +86,8 @@ func reportedEmail(t *testing.T, ctx *testContext, rid string) {
 	}
 }
 
-func reportEmail404(t *testing.T, ctx *testContext, rid string) {
-	resp, err := http.Get(fmt.Sprintf("%s/report?%s=%s", ctx.phishServer.URL, models.RecipientParameter, rid))
+func reportEmail404(t *testing.T, ctx *testContext, postId string) {
+	resp, err := http.Get(fmt.Sprintf("%s/report?%s=%s", ctx.phishServer.URL, models.RecipientParameter, postId))
 	if err != nil {
 		t.Fatalf("error requesting /report endpoint: %v", err)
 	}
@@ -98,8 +98,8 @@ func reportEmail404(t *testing.T, ctx *testContext, rid string) {
 	}
 }
 
-func clickLink(t *testing.T, ctx *testContext, rid string, expectedHTML string) {
-	resp, err := http.Get(fmt.Sprintf("%s/?%s=%s", ctx.phishServer.URL, models.RecipientParameter, rid))
+func clickLink(t *testing.T, ctx *testContext, postId string, expectedHTML string) {
+	resp, err := http.Get(fmt.Sprintf("%s/?%s=%s", ctx.phishServer.URL, models.RecipientParameter, postId))
 	if err != nil {
 		t.Fatalf("error requesting / endpoint: %v", err)
 	}
@@ -113,8 +113,8 @@ func clickLink(t *testing.T, ctx *testContext, rid string, expectedHTML string) 
 	}
 }
 
-func clickLink404(t *testing.T, ctx *testContext, rid string) {
-	resp, err := http.Get(fmt.Sprintf("%s/?%s=%s", ctx.phishServer.URL, models.RecipientParameter, rid))
+func clickLink404(t *testing.T, ctx *testContext, postId string) {
+	resp, err := http.Get(fmt.Sprintf("%s/?%s=%s", ctx.phishServer.URL, models.RecipientParameter, postId))
 	if err != nil {
 		t.Fatalf("error requesting / endpoint: %v", err)
 	}
@@ -126,8 +126,8 @@ func clickLink404(t *testing.T, ctx *testContext, rid string) {
 	}
 }
 
-func transparencyRequest(t *testing.T, ctx *testContext, r models.Result, rid, path string) {
-	resp, err := http.Get(fmt.Sprintf("%s%s?%s=%s", ctx.phishServer.URL, path, models.RecipientParameter, rid))
+func transparencyRequest(t *testing.T, ctx *testContext, r models.Result, postId, path string) {
+	resp, err := http.Get(fmt.Sprintf("%s%s?%s=%s", ctx.phishServer.URL, path, models.RecipientParameter, postId))
 	if err != nil {
 		t.Fatalf("error requesting %s endpoint: %v", path, err)
 	}
@@ -255,10 +255,10 @@ func TestNoRecipientID(t *testing.T) {
 func TestInvalidRecipientID(t *testing.T) {
 	ctx := setupTest(t)
 	defer tearDown(t, ctx)
-	rid := "XXXXXXXXXX"
-	openEmail404(t, ctx, rid)
-	clickLink404(t, ctx, rid)
-	reportEmail404(t, ctx, rid)
+	postId := "XXXXXXXXXX"
+	openEmail404(t, ctx, postId)
+	clickLink404(t, ctx, postId)
+	reportEmail404(t, ctx, postId)
 }
 
 func TestCompletedCampaignClick(t *testing.T) {
@@ -349,16 +349,16 @@ func TestTransparencyRequest(t *testing.T) {
 	defer tearDown(t, ctx)
 	campaign := getFirstCampaign(t)
 	result := campaign.Results[0]
-	rid := fmt.Sprintf("%s%s", result.RId, TransparencySuffix)
-	transparencyRequest(t, ctx, result, rid, "/")
-	transparencyRequest(t, ctx, result, rid, "/follow")
-	transparencyRequest(t, ctx, result, rid, "/report")
+	postId := fmt.Sprintf("%s%s", result.RId, TransparencySuffix)
+	transparencyRequest(t, ctx, result, postId, "/")
+	transparencyRequest(t, ctx, result, postId, "/follow")
+	transparencyRequest(t, ctx, result, postId, "/report")
 
 	// And check with the URL encoded version of a +
-	rid = fmt.Sprintf("%s%s", result.RId, "%2b")
-	transparencyRequest(t, ctx, result, rid, "/")
-	transparencyRequest(t, ctx, result, rid, "/follow")
-	transparencyRequest(t, ctx, result, rid, "/report")
+	postId = fmt.Sprintf("%s%s", result.RId, "%2b")
+	transparencyRequest(t, ctx, result, postId, "/")
+	transparencyRequest(t, ctx, result, postId, "/follow")
+	transparencyRequest(t, ctx, result, postId, "/report")
 }
 
 func TestRedirectTemplating(t *testing.T) {

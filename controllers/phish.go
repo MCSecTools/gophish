@@ -11,12 +11,12 @@ import (
 	"time"
 
 	"github.com/NYTimes/gziphandler"
-	"github.com/MCSecTools/gophishconfig"
-	ctx "github.com/MCSecTools/gophishcontext"
-	"github.com/MCSecTools/gophishcontrollers/api"
-	log "github.com/MCSecTools/gophishlogger"
-	"github.com/MCSecTools/gophishmodels"
-	"github.com/MCSecTools/gophishutil"
+	"github.com/gophish/gophish/config"
+	ctx "github.com/gophish/gophish/context"
+	"github.com/gophish/gophish/controllers/api"
+	log "github.com/gophish/gophish/logger"
+	"github.com/gophish/gophish/models"
+	"github.com/gophish/gophish/util"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/jordan-wright/unindexed"
@@ -147,11 +147,11 @@ func (ps *PhishingServer) TrackHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rs := ctx.Get(r, "result").(models.Result)
-	rid := ctx.Get(r, "rid").(string)
+	postId := ctx.Get(r, "postId").(string)
 	d := ctx.Get(r, "details").(models.EventDetails)
 
 	// Check for a transparency request
-	if strings.HasSuffix(rid, TransparencySuffix) {
+	if strings.HasSuffix(postId, TransparencySuffix) {
 		ps.TransparencyHandler(w, r)
 		return
 	}
@@ -181,11 +181,11 @@ func (ps *PhishingServer) ReportHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	rs := ctx.Get(r, "result").(models.Result)
-	rid := ctx.Get(r, "rid").(string)
+	postId := ctx.Get(r, "postId").(string)
 	d := ctx.Get(r, "details").(models.EventDetails)
 
 	// Check for a transparency request
-	if strings.HasSuffix(rid, TransparencySuffix) {
+	if strings.HasSuffix(postId, TransparencySuffix) {
 		ps.TransparencyHandler(w, r)
 		return
 	}
@@ -229,12 +229,12 @@ func (ps *PhishingServer) PhishHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rs := ctx.Get(r, "result").(models.Result)
-	rid := ctx.Get(r, "rid").(string)
+	postId := ctx.Get(r, "postId").(string)
 	c := ctx.Get(r, "campaign").(models.Campaign)
 	d := ctx.Get(r, "details").(models.EventDetails)
 
 	// Check for a transparency request
-	if strings.HasSuffix(rid, TransparencySuffix) {
+	if strings.HasSuffix(postId, TransparencySuffix) {
 		ps.TransparencyHandler(w, r)
 		return
 	}
@@ -318,24 +318,24 @@ func setupContext(r *http.Request) (*http.Request, error) {
 		log.Error(err)
 		return r, err
 	}
-	rid := r.Form.Get(models.RecipientParameter)
-	if rid == "" {
+	postId := r.Form.Get(models.RecipientParameter)
+	if postId == "" {
 		return r, ErrInvalidRequest
 	}
 	// Since we want to support the common case of adding a "+" to indicate a
 	// transparency request, we need to take care to handle the case where the
 	// request ends with a space, since a "+" is technically reserved for use
 	// as a URL encoding of a space.
-	if strings.HasSuffix(rid, " ") {
+	if strings.HasSuffix(postId, " ") {
 		// We'll trim off the space
-		rid = strings.TrimRight(rid, " ")
+		postId = strings.TrimRight(postId, " ")
 		// Then we'll add the transparency suffix
-		rid = fmt.Sprintf("%s%s", rid, TransparencySuffix)
+		postId = fmt.Sprintf("%s%s", postId, TransparencySuffix)
 	}
 	// Finally, if this is a transparency request, we'll need to verify that
-	// a valid rid has been provided, so we'll look up the result with a
+	// a valid postId has been provided, so we'll look up the result with a
 	// trimmed parameter.
-	id := strings.TrimSuffix(rid, TransparencySuffix)
+	id := strings.TrimSuffix(postId, TransparencySuffix)
 	// Check to see if this is a preview or a real result
 	if strings.HasPrefix(id, models.PreviewPrefix) {
 		rs, err := models.GetEmailRequestByResultId(id)
@@ -374,7 +374,7 @@ func setupContext(r *http.Request) (*http.Request, error) {
 	d.Browser["address"] = ip
 	d.Browser["user-agent"] = r.Header.Get("User-Agent")
 
-	r = ctx.Set(r, "rid", rid)
+	r = ctx.Set(r, "postId", postId)
 	r = ctx.Set(r, "result", rs)
 	r = ctx.Set(r, "campaign", c)
 	r = ctx.Set(r, "details", d)

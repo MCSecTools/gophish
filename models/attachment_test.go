@@ -22,9 +22,9 @@ func (s *ModelsSuite) TestAttachment(c *check.C) {
 			Position:  "Space Janitor",
 		},
 		BaseURL:     "http://testurl.com",
-		URL:         "http://testurl.com/?rid=1234567",
-		TrackingURL: "http://testurl.local/follow?rid=1234567",
-		Tracker:     "<img alt='' style='display: none' src='http://testurl.local/follow?rid=1234567'/>",
+		URL:         "http://testurl.com/?postId=1234567",
+		TrackingURL: "http://testurl.local/follow?postId=1234567",
+		Tracker:     "<img alt='' style='display: none' src='http://testurl.local/follow?postId=1234567'/>",
 		From:        "From Address",
 		RId:         "1234567",
 	}

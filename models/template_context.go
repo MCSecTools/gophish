@@ -29,7 +29,7 @@ type PhishingTemplateContext struct {
 
 // NewPhishingTemplateContext returns a populated PhishingTemplateContext,
 // parsing the correct fields from the provided TemplateContext and recipient.
-func NewPhishingTemplateContext(ctx TemplateContext, r BaseRecipient, rid string) (PhishingTemplateContext, error) {
+func NewPhishingTemplateContext(ctx TemplateContext, r BaseRecipient, postId string) (PhishingTemplateContext, error) {
 	f, err := mail.ParseAddress(ctx.getFromAddress())
 	if err != nil {
 		return PhishingTemplateContext{}, err
@@ -54,7 +54,7 @@ func NewPhishingTemplateContext(ctx TemplateContext, r BaseRecipient, rid string
 
 	phishURL, _ := url.Parse(templateURL)
 	q := phishURL.Query()
-	q.Set(RecipientParameter, rid)
+	q.Set(RecipientParameter, postId)
 	phishURL.RawQuery = q.Encode()
 
 	trackingURL, _ := url.Parse(templateURL)
@@ -68,7 +68,7 @@ func NewPhishingTemplateContext(ctx TemplateContext, r BaseRecipient, rid string
 		TrackingURL:   trackingURL.String(),
 		Tracker:       "<img alt='' style='display: none' src='" + trackingURL.String() + "'/>",
 		From:          fn,
-		RId:           rid,
+		RId:           postId,
 	}, nil
 }
 
