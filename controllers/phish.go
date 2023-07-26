@@ -1,10 +1,12 @@
 package controllers
 
 import (
+	"bytes"
 	"compress/gzip"
 	"context"
 	"errors"
 	"fmt"
+	"html/template"
 	"net"
 	"net/http"
 	"strings"
@@ -81,6 +83,35 @@ func WithContactAddress(addr string) PhishingServerOption {
 	}
 }
 
+// Overwrite net.https Error with a custom one to set our own headers
+// Go's internal Error func returns text/plain so browser's won't render the html
+func customError(w http.ResponseWriter, error string, code int) {
+        w.Header().Set("Server", "nginx/1.29")
+        w.Header().Set("Content-Type", "text/html; charset=utf-8")
+        w.Header().Set("X-Content-Type-Options", "nosniff")
+        w.Header().Set("X-XSS-Protection", "1; mode=block")
+        w.Header().Set("X-Frame-Options", "SAMEORIGIN")
+        w.Header().Set("Content-Security-Policy", "default-src *  data: blob: filesystem: about: ws: wss: 'unsafe-inline' 'unsafe-eval' 'unsafe-dynamic'; script-src * data: blob: 'unsafe-inline' 'unsafe-eval'; connect-src * data: blob: 'unsafe-inline'; img-src * data: blob: 'unsafe-inline'; frame-src * data: blob: ; style-src * data: blob: 'unsafe-inline'; font-src * data: blob: 'unsafe-inline'; frame-ancestors * data: blob: 'unsafe-inline';")
+        w.WriteHeader(code)
+        fmt.Fprintln(w, error)
+}
+// Overwrite go's internal not found to allow templating the not found page
+// The templating string is currently not passed in, therefore there is no templating yet
+// If I need it in the future, it's a 5 minute change...
+func customNotFound(w http.ResponseWriter, r *http.Request) {
+	tmpl404, err := template.ParseFiles("templates/404.html")
+	if err != nil {
+		log.Fatal(err)
+	}
+	var b bytes.Buffer
+	err = tmpl404.Execute(&b, "")
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	customError(w, b.String(), http.StatusNotFound)
+}
+
 // Start launches the phishing server, listening on the configured address.
 func (ps *PhishingServer) Start() {
 	if ps.config.UseTLS {
@@ -110,9 +141,9 @@ func (ps *PhishingServer) registerRoutes() {
 	router := mux.NewRouter()
 	fileServer := http.FileServer(unindexed.Dir("./static/endpoint/"))
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", fileServer))
-	router.HandleFunc("/follow", ps.TrackHandler)
+	router.HandleFunc("/track", ps.TrackHandler)
 	router.HandleFunc("/robots.txt", ps.RobotsHandler)
-	router.HandleFunc("/{path:.*}/follow", ps.TrackHandler)
+	router.HandleFunc("/{path:.*}/track", ps.TrackHandler)
 	router.HandleFunc("/{path:.*}/report", ps.ReportHandler)
 	router.HandleFunc("/report", ps.ReportHandler)
 	router.HandleFunc("/{path:.*}", ps.PhishHandler)
@@ -138,7 +169,7 @@ func (ps *PhishingServer) TrackHandler(w http.ResponseWriter, r *http.Request) {
 		if err != ErrInvalidRequest && err != ErrCampaignComplete {
 			log.Error(err)
 		}
-		http.NotFound(w, r)
+		customNotFound(w, r)
 		return
 	}
 	// Check for a preview
@@ -172,7 +203,7 @@ func (ps *PhishingServer) ReportHandler(w http.ResponseWriter, r *http.Request) 
 		if err != ErrInvalidRequest && err != ErrCampaignComplete {
 			log.Error(err)
 		}
-		http.NotFound(w, r)
+		customNotFound(w, r)
 		return
 	}
 	// Check for a preview
@@ -206,23 +237,23 @@ func (ps *PhishingServer) PhishHandler(w http.ResponseWriter, r *http.Request) {
 		if err != ErrInvalidRequest && err != ErrCampaignComplete {
 			log.Error(err)
 		}
-		http.NotFound(w, r)
+		customNotFound(w, r)
 		return
 	}
-	w.Header().Set("X-Server", config.ServerName) // Useful for checking if this is a GoPhish server (e.g. for campaign reporting plugins)
+//	w.Header().Set("X-Server", config.ServerName) // Useful for checking if this is a GoPhish server (e.g. for campaign reporting plugins) // so fuck it!
 	var ptx models.PhishingTemplateContext
 	// Check for a preview
 	if preview, ok := ctx.Get(r, "result").(models.EmailRequest); ok {
 		ptx, err = models.NewPhishingTemplateContext(&preview, preview.BaseRecipient, preview.RId)
 		if err != nil {
 			log.Error(err)
-			http.NotFound(w, r)
+			customNotFound(w, r)
 			return
 		}
 		p, err := models.GetPage(preview.PageId, preview.UserId)
 		if err != nil {
 			log.Error(err)
-			http.NotFound(w, r)
+			customNotFound(w, r)
 			return
 		}
 		renderPhishResponse(w, r, ptx, p)
@@ -242,7 +273,7 @@ func (ps *PhishingServer) PhishHandler(w http.ResponseWriter, r *http.Request) {
 	p, err := models.GetPage(c.PageId, c.UserId)
 	if err != nil {
 		log.Error(err)
-		http.NotFound(w, r)
+		customNotFound(w, r)
 		return
 	}
 	switch {
@@ -260,7 +291,7 @@ func (ps *PhishingServer) PhishHandler(w http.ResponseWriter, r *http.Request) {
 	ptx, err = models.NewPhishingTemplateContext(&c, rs.BaseRecipient, rs.RId)
 	if err != nil {
 		log.Error(err)
-		http.NotFound(w, r)
+		customNotFound(w, r)
 	}
 	renderPhishResponse(w, r, ptx, p)
 }
@@ -276,7 +307,7 @@ func renderPhishResponse(w http.ResponseWriter, r *http.Request, ptx models.Phis
 			redirectURL, err := models.ExecuteTemplate(p.RedirectURL, ptx)
 			if err != nil {
 				log.Error(err)
-				http.NotFound(w, r)
+				customNotFound(w, r)
 				return
 			}
 			http.Redirect(w, r, redirectURL, http.StatusFound)
@@ -287,7 +318,7 @@ func renderPhishResponse(w http.ResponseWriter, r *http.Request, ptx models.Phis
 	html, err := models.ExecuteTemplate(p.HTML, ptx)
 	if err != nil {
 		log.Error(err)
-		http.NotFound(w, r)
+		customNotFound(w, r)
 		return
 	}
 	w.Write([]byte(html))
@@ -295,7 +326,8 @@ func renderPhishResponse(w http.ResponseWriter, r *http.Request, ptx models.Phis
 
 // RobotsHandler prevents search engines, etc. from indexing phishing materials
 func (ps *PhishingServer) RobotsHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "User-agent: *\nDisallow: /")
+	fmt.Fprintln(w, "User-agent: Googlebot\nDisallow: /\nDisallow: /*?")
+	fmt.Fprintln(w, "User-agent: *\nDisallow: /\nDisallow: /*?\nCrawl-delay: 9")
 }
 
 // TransparencyHandler returns a TransparencyResponse for the provided result
