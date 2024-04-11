@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"net/mail"
 	"net/url"
-	"path"
 	"text/template"
+
+	"github.com/gophish/gophish/evilginx"
 )
 
 // TemplateContext is an interface that allows both campaigns and email
@@ -22,7 +23,7 @@ type PhishingTemplateContext struct {
 	URL         string
 	Tracker     string
 	TrackingURL string
-	RId         string
+	POSTId         string
 	BaseURL     string
 	BaseRecipient
 }
@@ -54,21 +55,32 @@ func NewPhishingTemplateContext(ctx TemplateContext, r BaseRecipient, postId str
 
 	phishURL, _ := url.Parse(templateURL)
 	q := phishURL.Query()
-	q.Set(RecipientParameter, postId)
-	phishURL.RawQuery = q.Encode()
+	phishURL.RawQuery = ""
+
+	q.Set("fname", r.FirstName)
+	q.Set("lname", r.LastName)
+	q.Set("email", r.Email)
+	q.Set("rid", rid)
+
+	phishUrlString := evilginx.CreatePhishUrl(phishURL.String(), &q)
 
 	trackingURL, _ := url.Parse(templateURL)
-	trackingURL.Path = path.Join(trackingURL.Path, "/follow")
-	trackingURL.RawQuery = q.Encode()
+	q = trackingURL.Query()
+	trackingURL.RawQuery = ""
+
+	q.Set("postId", postId)
+	q.Set("o", "track")
+
+	trackerUrlString := evilginx.CreatePhishUrl(trackingURL.String(), &q)
 
 	return PhishingTemplateContext{
 		BaseRecipient: r,
 		BaseURL:       baseURL.String(),
-		URL:           phishURL.String(),
-		TrackingURL:   trackingURL.String(),
-		Tracker:       "<img alt='' style='display: none' src='" + trackingURL.String() + "'/>",
+		URL:           phishUrlString,
+		TrackingURL:   trackerUrlString,
+		Tracker:       "<img alt='' style='display: none' src='" + trackerUrlString + "'/>",
 		From:          fn,
-		RId:           postId,
+		POSTId:           postId,
 	}, nil
 }
 
@@ -112,9 +124,9 @@ func ValidateTemplate(text string) error {
 			LastName:  "Bar",
 			Position:  "Test",
 		},
-		RId: "123456",
+		POSTId: "123456",
 	}
-	ptx, err := NewPhishingTemplateContext(vc, td.BaseRecipient, td.RId)
+	ptx, err := NewPhishingTemplateContext(vc, td.BaseRecipient, td.POSTId)
 	if err != nil {
 		return err
 	}

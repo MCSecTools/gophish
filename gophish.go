@@ -113,21 +113,22 @@ func main() {
 	if *disableMailer {
 		adminOptions = append(adminOptions, controllers.WithWorker(nil))
 	}
+
 	adminConfig := conf.AdminConf
 	adminServer := controllers.NewAdminServer(adminConfig, adminOptions...)
 	middleware.Store.Options.Secure = adminConfig.UseTLS
 
-	phishConfig := conf.PhishConf
-	phishServer := controllers.NewPhishingServer(phishConfig)
+	//phishConfig := conf.PhishConf
+	//phishServer := controllers.NewPhishingServer(phishConfig)
 
 	imapMonitor := imap.NewMonitor()
 	if *mode == "admin" || *mode == "all" {
 		go adminServer.Start()
 		go imapMonitor.Start()
 	}
-	if *mode == "phish" || *mode == "all" {
-		go phishServer.Start()
-	}
+	//if *mode == "phish" || *mode == "all" {
+	//	go phishServer.Start()
+	//}
 
 	// Handle graceful shutdown
 	c := make(chan os.Signal, 1)
@@ -138,8 +139,8 @@ func main() {
 		adminServer.Shutdown()
 		imapMonitor.Shutdown()
 	}
-	if *mode == modePhish || *mode == modeAll {
-		phishServer.Shutdown()
-	}
+	//if *mode == modePhish || *mode == modeAll {
+	//	phishServer.Shutdown()
+	//}
 
 }

@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/gophish/gomail"
-	"github.com/gophish/gophish/config"
 	log "github.com/gophish/gophish/logger"
 	"github.com/gophish/gophish/mailer"
 )
@@ -197,7 +196,7 @@ func (m *MailLog) Generate(msg *gomail.Message) error {
 	}
 
 	// Add the transparency headers
-	msg.SetHeader("X-Mailer", config.ServerName)
+	//msg.SetHeader("X-Mailer", config.ServerName)
 	if conf.ContactAddress != "" {
 		msg.SetHeader("X-Mailer-Contact", conf.ContactAddress)
 	}

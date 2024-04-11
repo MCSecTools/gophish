@@ -9,9 +9,11 @@ Gophish: Open-Source Phishing Toolkit
 
 [Gophish](https://getgophish.com) is an open-source phishing toolkit designed for businesses and penetration testers. It provides the ability to quickly and easily setup and execute phishing engagements and security awareness training
 
+This is the [custom version](https://breakdev.org/evilginx-3-3-go-phish/) of GoPhish, modified to work with the [Evilginx](https://github.com/kgretzky/evilginx2) phishing framework.
+
 ### Install
 
-Installation of Gophish is dead-simple - just download and extract the zip containing the [release for your system](https://github.com/gophish/gophish/releases/), and run the binary. Gophish has binary releases for Windows, Mac, and Linux platforms.
+Installation of Gophish is dead-simple - just download and extract the zip containing the [release for your system](https://github.com/kgretzky/gophish/releases/), and run the binary. Gophish has binary releases for Windows, Mac, and Linux platforms.
 
 ### Building From Source
 

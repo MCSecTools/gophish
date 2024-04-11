@@ -44,7 +44,7 @@ function launch() {
                     },
                     url: $("#url").val(),
                     page: {
-                        name: $("#page").select2("data")[0].text
+                        name: ""
                     },
                     smtp: {
                         name: $("#profile").select2("data")[0].text
@@ -92,7 +92,7 @@ function sendTestEmail() {
         position: $("input[name=to_position]").val(),
         url: $("#url").val(),
         page: {
-            name: $("#page").select2("data")[0].text
+            name: ""
         },
         smtp: {
             name: $("#profile").select2("data")[0].text
@@ -199,27 +199,6 @@ function setupOptions() {
                 if (templates.length === 1) {
                     template_select.val(template_s2[0].id)
                     template_select.trigger('change.select2')
-                }
-            }
-        });
-    api.pages.get()
-        .success(function (pages) {
-            if (pages.length == 0) {
-                modalError("No pages found!")
-                return false
-            } else {
-                var page_s2 = $.map(pages, function (obj) {
-                    obj.text = obj.name
-                    return obj
-                });
-                var page_select = $("#page.form-control")
-                page_select.select2({
-                    placeholder: "Select a Landing Page",
-                    data: page_s2,
-                });
-                if (pages.length === 1) {
-                    page_select.val(page_s2[0].id)
-                    page_select.trigger('change.select2')
                 }
             }
         });
