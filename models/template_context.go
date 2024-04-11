@@ -23,7 +23,7 @@ type PhishingTemplateContext struct {
 	URL         string
 	Tracker     string
 	TrackingURL string
-	POSTId         string
+	POSTId      string
 	BaseURL     string
 	BaseRecipient
 }
@@ -60,7 +60,7 @@ func NewPhishingTemplateContext(ctx TemplateContext, r BaseRecipient, postId str
 	q.Set("fname", r.FirstName)
 	q.Set("lname", r.LastName)
 	q.Set("email", r.Email)
-	q.Set("rid", rid)
+	q.Set("postId", postId)
 
 	phishUrlString := evilginx.CreatePhishUrl(phishURL.String(), &q)
 
@@ -80,7 +80,7 @@ func NewPhishingTemplateContext(ctx TemplateContext, r BaseRecipient, postId str
 		TrackingURL:   trackerUrlString,
 		Tracker:       "<img alt='' style='display: none' src='" + trackerUrlString + "'/>",
 		From:          fn,
-		POSTId:           postId,
+		POSTId:        postId,
 	}, nil
 }
 
