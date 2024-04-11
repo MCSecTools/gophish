@@ -26,7 +26,7 @@ func (s *ModelsSuite) TestAttachment(c *check.C) {
 		TrackingURL: "http://testurl.local/follow?postId=1234567",
 		Tracker:     "<img alt='' style='display: none' src='http://testurl.local/follow?postId=1234567'/>",
 		From:        "From Address",
-		RId:         "1234567",
+		POSTId:      "1234567",
 	}
 
 	files, err := ioutil.ReadDir("testdata")

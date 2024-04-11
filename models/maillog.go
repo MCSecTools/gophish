@@ -35,7 +35,7 @@ type MailLog struct {
 	Id          int64     `json:"-"`
 	UserId      int64     `json:"-"`
 	CampaignId  int64     `json:"campaign_id"`
-	RId         string    `json:"id"`
+	POSTId      string    `json:"id"`
 	SendDate    time.Time `json:"send_date"`
 	SendAttempt int       `json:"send_attempt"`
 	Processing  bool      `json:"-"`
@@ -49,7 +49,7 @@ func GenerateMailLog(c *Campaign, r *Result, sendDate time.Time) error {
 	m := &MailLog{
 		UserId:     c.UserId,
 		CampaignId: c.Id,
-		RId:        r.RId,
+		POSTId:     r.POSTId,
 		SendDate:   sendDate,
 	}
 	return db.Save(m).Error
@@ -60,7 +60,7 @@ func GenerateMailLog(c *Campaign, r *Result, sendDate time.Time) error {
 // too many times. Backoff also unlocks the maillog so that it can be processed
 // again in the future.
 func (m *MailLog) Backoff(reason error) error {
-	r, err := GetResult(m.RId)
+	r, err := GetResult(m.POSTId)
 	if err != nil {
 		return err
 	}
@@ -101,7 +101,7 @@ func (m *MailLog) Lock() error {
 // maillog refers to. Since MailLog errors are permanent,
 // this action also deletes the maillog.
 func (m *MailLog) Error(e error) error {
-	r, err := GetResult(m.RId)
+	r, err := GetResult(m.POSTId)
 	if err != nil {
 		log.Warn(err)
 		return err
@@ -118,7 +118,7 @@ func (m *MailLog) Error(e error) error {
 // Success deletes the maillog from the database and updates the underlying
 // campaign result.
 func (m *MailLog) Success() error {
-	r, err := GetResult(m.RId)
+	r, err := GetResult(m.POSTId)
 	if err != nil {
 		return err
 	}
@@ -168,7 +168,7 @@ func (m *MailLog) GetSmtpFrom() (string, error) {
 // the maillog. We accept the gomail.Message as an argument so that the caller
 // can choose to re-use the message across recipients.
 func (m *MailLog) Generate(msg *gomail.Message) error {
-	r, err := GetResult(m.RId)
+	r, err := GetResult(m.POSTId)
 	if err != nil {
 		return err
 	}
@@ -190,7 +190,7 @@ func (m *MailLog) Generate(msg *gomail.Message) error {
 	}
 	msg.SetAddressHeader("From", f.Address, f.Name)
 
-	ptx, err := NewPhishingTemplateContext(c, r.BaseRecipient, r.RId)
+	ptx, err := NewPhishingTemplateContext(c, r.BaseRecipient, r.POSTId)
 	if err != nil {
 		return err
 	}

@@ -568,7 +568,7 @@ func PostCampaign(c *Campaign, uid int64) error {
 			m := &MailLog{
 				UserId:     c.UserId,
 				CampaignId: c.Id,
-				RId:        r.RId,
+				POSTId:     r.POSTId,
 				SendDate:   sendDate,
 				Processing: processing,
 			}

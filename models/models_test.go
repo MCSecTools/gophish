@@ -63,10 +63,10 @@ func (s *ModelsSuite) createCampaignDependencies(ch *check.C, optional ...string
 	if len(optional) > 0 {
 		t.Subject = optional[0]
 	} else {
-		t.Subject = "{{.RId}} - Subject"
+		t.Subject = "{{.POSTId}} - Subject"
 	}
-	t.Text = "{{.RId}} - Text"
-	t.HTML = "{{.RId}} - HTML"
+	t.Text = "{{.POSTId}} - Text"
+	t.HTML = "{{.POSTId}} - HTML"
 	t.UserId = 1
 	ch.Assert(PostTemplate(&t), check.Equals, nil)
 

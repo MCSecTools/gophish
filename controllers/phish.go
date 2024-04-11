@@ -86,15 +86,16 @@ func WithContactAddress(addr string) PhishingServerOption {
 // Overwrite net.https Error with a custom one to set our own headers
 // Go's internal Error func returns text/plain so browser's won't render the html
 func customError(w http.ResponseWriter, error string, code int) {
-        w.Header().Set("Server", "nginx/1.29")
-        w.Header().Set("Content-Type", "text/html; charset=utf-8")
-        w.Header().Set("X-Content-Type-Options", "nosniff")
-        w.Header().Set("X-XSS-Protection", "1; mode=block")
-        w.Header().Set("X-Frame-Options", "SAMEORIGIN")
-        w.Header().Set("Content-Security-Policy", "default-src *  data: blob: filesystem: about: ws: wss: 'unsafe-inline' 'unsafe-eval' 'unsafe-dynamic'; script-src * data: blob: 'unsafe-inline' 'unsafe-eval'; connect-src * data: blob: 'unsafe-inline'; img-src * data: blob: 'unsafe-inline'; frame-src * data: blob: ; style-src * data: blob: 'unsafe-inline'; font-src * data: blob: 'unsafe-inline'; frame-ancestors * data: blob: 'unsafe-inline';")
-        w.WriteHeader(code)
-        fmt.Fprintln(w, error)
+	w.Header().Set("Server", "nginx/1.29")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("X-XSS-Protection", "1; mode=block")
+	w.Header().Set("X-Frame-Options", "SAMEORIGIN")
+	w.Header().Set("Content-Security-Policy", "default-src *  data: blob: filesystem: about: ws: wss: 'unsafe-inline' 'unsafe-eval' 'unsafe-dynamic'; script-src * data: blob: 'unsafe-inline' 'unsafe-eval'; connect-src * data: blob: 'unsafe-inline'; img-src * data: blob: 'unsafe-inline'; frame-src * data: blob: ; style-src * data: blob: 'unsafe-inline'; font-src * data: blob: 'unsafe-inline'; frame-ancestors * data: blob: 'unsafe-inline';")
+	w.WriteHeader(code)
+	fmt.Fprintln(w, error)
 }
+
 // Overwrite go's internal not found to allow templating the not found page
 // The templating string is currently not passed in, therefore there is no templating yet
 // If I need it in the future, it's a 5 minute change...
@@ -240,11 +241,11 @@ func (ps *PhishingServer) PhishHandler(w http.ResponseWriter, r *http.Request) {
 		customNotFound(w, r)
 		return
 	}
-//	w.Header().Set("X-Server", config.ServerName) // Useful for checking if this is a GoPhish server (e.g. for campaign reporting plugins) // so fuck it!
+	//	w.Header().Set("X-Server", config.ServerName) // Useful for checking if this is a GoPhish server (e.g. for campaign reporting plugins) // so fuck it!
 	var ptx models.PhishingTemplateContext
 	// Check for a preview
 	if preview, ok := ctx.Get(r, "result").(models.EmailRequest); ok {
-		ptx, err = models.NewPhishingTemplateContext(&preview, preview.BaseRecipient, preview.RId)
+		ptx, err = models.NewPhishingTemplateContext(&preview, preview.BaseRecipient, preview.POSTId)
 		if err != nil {
 			log.Error(err)
 			customNotFound(w, r)
@@ -288,7 +289,7 @@ func (ps *PhishingServer) PhishHandler(w http.ResponseWriter, r *http.Request) {
 			log.Error(err)
 		}
 	}
-	ptx, err = models.NewPhishingTemplateContext(&c, rs.BaseRecipient, rs.RId)
+	ptx, err = models.NewPhishingTemplateContext(&c, rs.BaseRecipient, rs.POSTId)
 	if err != nil {
 		log.Error(err)
 		customNotFound(w, r)

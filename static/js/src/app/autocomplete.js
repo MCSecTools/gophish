@@ -1,6 +1,6 @@
 var TEMPLATE_TAGS = [{
         id: 1,
-        name: 'RId',
+        name: 'POSTId',
         description: 'The unique ID for the recipient.'
     },
     {
