@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS `email_requests` (
     `email` varchar(255),
     `position` varchar(255),
     `url` varchar(255),
-    `r_id` varchar(255),
+    `post_Id` varchar(255),
     `from_address` varchar(255)
 );
 
