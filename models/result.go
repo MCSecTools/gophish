@@ -205,6 +205,10 @@ func (r *Result) GenerateId(tx *gorm.DB) error {
 // given the ResultId
 func GetResult(Post_Id string) (Result, error) {
 	r := Result{}
+<<<<<<< HEAD
 	err := db.Where("postId=?", Post_Id).First(&r).Error
+=======
+	err := db.Where("r_id=?", postId).First(&r).Error
+>>>>>>> parent of 66d36bd (it works now)
 	return r, err
 }
