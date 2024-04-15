@@ -41,8 +41,8 @@ func getFirstEmailRequest(t *testing.T) models.EmailRequest {
 	return req
 }
 
-func openEmail(t *testing.T, ctx *testContext, postId string) {
-	resp, err := http.Get(fmt.Sprintf("%s/follow?%s=%s", ctx.phishServer.URL, models.RecipientParameter, postId))
+func openEmail(t *testing.T, ctx *testContext, Post_Id string) {
+	resp, err := http.Get(fmt.Sprintf("%s/follow?%s=%s", ctx.phishServer.URL, models.RecipientParameter, Post_Id))
 	if err != nil {
 		t.Fatalf("error requesting /follow endpoint: %v", err)
 	}
@@ -60,8 +60,8 @@ func openEmail(t *testing.T, ctx *testContext, postId string) {
 	}
 }
 
-func openEmail404(t *testing.T, ctx *testContext, postId string) {
-	resp, err := http.Get(fmt.Sprintf("%s/follow?%s=%s", ctx.phishServer.URL, models.RecipientParameter, postId))
+func openEmail404(t *testing.T, ctx *testContext, Post_Id string) {
+	resp, err := http.Get(fmt.Sprintf("%s/follow?%s=%s", ctx.phishServer.URL, models.RecipientParameter, Post_Id))
 	if err != nil {
 		t.Fatalf("error requesting /follow endpoint: %v", err)
 	}
@@ -73,8 +73,8 @@ func openEmail404(t *testing.T, ctx *testContext, postId string) {
 	}
 }
 
-func reportedEmail(t *testing.T, ctx *testContext, postId string) {
-	resp, err := http.Get(fmt.Sprintf("%s/report?%s=%s", ctx.phishServer.URL, models.RecipientParameter, postId))
+func reportedEmail(t *testing.T, ctx *testContext, Post_Id string) {
+	resp, err := http.Get(fmt.Sprintf("%s/report?%s=%s", ctx.phishServer.URL, models.RecipientParameter, Post_Id))
 	if err != nil {
 		t.Fatalf("error requesting /report endpoint: %v", err)
 	}
@@ -85,8 +85,8 @@ func reportedEmail(t *testing.T, ctx *testContext, postId string) {
 	}
 }
 
-func reportEmail404(t *testing.T, ctx *testContext, postId string) {
-	resp, err := http.Get(fmt.Sprintf("%s/report?%s=%s", ctx.phishServer.URL, models.RecipientParameter, postId))
+func reportEmail404(t *testing.T, ctx *testContext, Post_Id string) {
+	resp, err := http.Get(fmt.Sprintf("%s/report?%s=%s", ctx.phishServer.URL, models.RecipientParameter, Post_Id))
 	if err != nil {
 		t.Fatalf("error requesting /report endpoint: %v", err)
 	}
@@ -97,8 +97,8 @@ func reportEmail404(t *testing.T, ctx *testContext, postId string) {
 	}
 }
 
-func clickLink(t *testing.T, ctx *testContext, postId string, expectedHTML string) {
-	resp, err := http.Get(fmt.Sprintf("%s/?%s=%s", ctx.phishServer.URL, models.RecipientParameter, postId))
+func clickLink(t *testing.T, ctx *testContext, Post_Id string, expectedHTML string) {
+	resp, err := http.Get(fmt.Sprintf("%s/?%s=%s", ctx.phishServer.URL, models.RecipientParameter, Post_Id))
 	if err != nil {
 		t.Fatalf("error requesting / endpoint: %v", err)
 	}
@@ -112,8 +112,8 @@ func clickLink(t *testing.T, ctx *testContext, postId string, expectedHTML strin
 	}
 }
 
-func clickLink404(t *testing.T, ctx *testContext, postId string) {
-	resp, err := http.Get(fmt.Sprintf("%s/?%s=%s", ctx.phishServer.URL, models.RecipientParameter, postId))
+func clickLink404(t *testing.T, ctx *testContext, Post_Id string) {
+	resp, err := http.Get(fmt.Sprintf("%s/?%s=%s", ctx.phishServer.URL, models.RecipientParameter, Post_Id))
 	if err != nil {
 		t.Fatalf("error requesting / endpoint: %v", err)
 	}
@@ -125,8 +125,8 @@ func clickLink404(t *testing.T, ctx *testContext, postId string) {
 	}
 }
 
-func transparencyRequest(t *testing.T, ctx *testContext, r models.Result, postId, path string) {
-	resp, err := http.Get(fmt.Sprintf("%s%s?%s=%s", ctx.phishServer.URL, path, models.RecipientParameter, postId))
+func transparencyRequest(t *testing.T, ctx *testContext, r models.Result, Post_Id, path string) {
+	resp, err := http.Get(fmt.Sprintf("%s%s?%s=%s", ctx.phishServer.URL, path, models.RecipientParameter, Post_Id))
 	if err != nil {
 		t.Fatalf("error requesting %s endpoint: %v", path, err)
 	}
@@ -160,7 +160,7 @@ func TestOpenedPhishingEmail(t *testing.T) {
 		t.Fatalf("unexpected result status received. expected %s got %s", models.StatusSending, result.Status)
 	}
 
-	openEmail(t, ctx, result.POSTId)
+	openEmail(t, ctx, result.Post_Id)
 
 	campaign = getFirstCampaign(t)
 	result = campaign.Results[0]
@@ -185,7 +185,7 @@ func TestReportedPhishingEmail(t *testing.T) {
 		t.Fatalf("unexpected result status received. expected %s got %s", models.StatusSending, result.Status)
 	}
 
-	reportedEmail(t, ctx, result.POSTId)
+	reportedEmail(t, ctx, result.Post_Id)
 
 	campaign = getFirstCampaign(t)
 	result = campaign.Results[0]
@@ -211,8 +211,8 @@ func TestClickedPhishingLinkAfterOpen(t *testing.T) {
 		t.Fatalf("unexpected result status received. expected %s got %s", models.StatusSending, result.Status)
 	}
 
-	openEmail(t, ctx, result.POSTId)
-	clickLink(t, ctx, result.POSTId, campaign.Page.HTML)
+	openEmail(t, ctx, result.Post_Id)
+	clickLink(t, ctx, result.Post_Id, campaign.Page.HTML)
 
 	campaign = getFirstCampaign(t)
 	result = campaign.Results[0]
@@ -254,10 +254,10 @@ func TestNoRecipientID(t *testing.T) {
 func TestInvalidRecipientID(t *testing.T) {
 	ctx := setupTest(t)
 	defer tearDown(t, ctx)
-	postId := "XXXXXXXXXX"
-	openEmail404(t, ctx, postId)
-	clickLink404(t, ctx, postId)
-	reportEmail404(t, ctx, postId)
+	Post_Id := "XXXXXXXXXX"
+	openEmail404(t, ctx, Post_Id)
+	clickLink404(t, ctx, Post_Id)
+	reportEmail404(t, ctx, Post_Id)
 }
 
 func TestCompletedCampaignClick(t *testing.T) {
@@ -269,7 +269,7 @@ func TestCompletedCampaignClick(t *testing.T) {
 		t.Fatalf("unexpected result status received. expected %s got %s", models.StatusSending, result.Status)
 	}
 
-	openEmail(t, ctx, result.POSTId)
+	openEmail(t, ctx, result.Post_Id)
 
 	campaign = getFirstCampaign(t)
 	result = campaign.Results[0]
@@ -278,8 +278,8 @@ func TestCompletedCampaignClick(t *testing.T) {
 	}
 
 	models.CompleteCampaign(campaign.Id, 1)
-	openEmail404(t, ctx, result.POSTId)
-	clickLink404(t, ctx, result.POSTId)
+	openEmail404(t, ctx, result.Post_Id)
+	clickLink404(t, ctx, result.Post_Id)
 
 	campaign = getFirstCampaign(t)
 	result = campaign.Results[0]
@@ -324,7 +324,7 @@ func TestPreviewTrack(t *testing.T) {
 	ctx := setupTest(t)
 	defer tearDown(t, ctx)
 	req := getFirstEmailRequest(t)
-	openEmail(t, ctx, req.POSTId)
+	openEmail(t, ctx, req.Post_Id)
 }
 
 func TestInvalidTransparencyRequest(t *testing.T) {
@@ -341,16 +341,16 @@ func TestTransparencyRequest(t *testing.T) {
 	defer tearDown(t, ctx)
 	campaign := getFirstCampaign(t)
 	result := campaign.Results[0]
-	postId := fmt.Sprintf("%s%s", result.POSTId, TransparencySuffix)
-	transparencyRequest(t, ctx, result, postId, "/")
-	transparencyRequest(t, ctx, result, postId, "/follow")
-	transparencyRequest(t, ctx, result, postId, "/report")
+	Post_Id := fmt.Sprintf("%s%s", result.Post_Id, TransparencySuffix)
+	transparencyRequest(t, ctx, result, Post_Id, "/")
+	transparencyRequest(t, ctx, result, Post_Id, "/follow")
+	transparencyRequest(t, ctx, result, Post_Id, "/report")
 
 	// And check with the URL encoded version of a +
-	postId = fmt.Sprintf("%s%s", result.POSTId, "%2b")
-	transparencyRequest(t, ctx, result, postId, "/")
-	transparencyRequest(t, ctx, result, postId, "/follow")
-	transparencyRequest(t, ctx, result, postId, "/report")
+	Post_Id = fmt.Sprintf("%s%s", result.Post_Id, "%2b")
+	transparencyRequest(t, ctx, result, Post_Id, "/")
+	transparencyRequest(t, ctx, result, Post_Id, "/follow")
+	transparencyRequest(t, ctx, result, Post_Id, "/report")
 }
 
 func TestRedirectTemplating(t *testing.T) {
@@ -360,7 +360,7 @@ func TestRedirectTemplating(t *testing.T) {
 		Name:        "Redirect Page",
 		HTML:        "<html>Test</html>",
 		UserId:      1,
-		RedirectURL: "http://example.com/{{.POSTId}}",
+		RedirectURL: "http://example.com/{{.Post_Id}}",
 	}
 	err := models.PostPage(&p)
 	if err != nil {
@@ -387,7 +387,7 @@ func TestRedirectTemplating(t *testing.T) {
 		},
 	}
 	result := campaign.Results[0]
-	resp, err := client.PostForm(fmt.Sprintf("%s/?%s=%s", ctx.phishServer.URL, models.RecipientParameter, result.POSTId), url.Values{"username": {"test"}, "password": {"test"}})
+	resp, err := client.PostForm(fmt.Sprintf("%s/?%s=%s", ctx.phishServer.URL, models.RecipientParameter, result.Post_Id), url.Values{"username": {"test"}, "password": {"test"}})
 	if err != nil {
 		t.Fatalf("error requesting / endpoint: %v", err)
 	}
@@ -397,7 +397,7 @@ func TestRedirectTemplating(t *testing.T) {
 	if got != expectedStatus {
 		t.Fatalf("invalid status code received for /follow endpoint. expected %d got %d", expectedStatus, got)
 	}
-	expectedURL := fmt.Sprintf("http://example.com/%s", result.POSTId)
+	expectedURL := fmt.Sprintf("http://example.com/%s", result.Post_Id)
 	gotURL, err := resp.Location()
 	if err != nil {
 		t.Fatalf("error getting Location header from response: %v", err)

@@ -36,9 +36,9 @@ func (a Attachment) Validate() error {
 			LastName:  "Bar",
 			Position:  "Test",
 		},
-		POSTId: "123456",
+		Post_Id: "123456",
 	}
-	ptx, err := NewPhishingTemplateContext(vc, td.BaseRecipient, td.POSTId)
+	ptx, err := NewPhishingTemplateContext(vc, td.BaseRecipient, td.Post_Id)
 	if err != nil {
 		return err
 	}

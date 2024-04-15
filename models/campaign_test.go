@@ -166,9 +166,9 @@ func setupCampaignDependencies(b *testing.B, size int) {
 
 	// Add a template
 	template := Template{Name: "Test Template"}
-	template.Subject = "{{.POSTId}} - Subject"
-	template.Text = "{{.POSTId}} - Text"
-	template.HTML = "{{.POSTId}} - HTML"
+	template.Subject = "{{.Post_Id}} - Subject"
+	template.Text = "{{.Post_Id}} - Text"
+	template.HTML = "{{.Post_Id}} - HTML"
 	template.UserId = 1
 	err = PostTemplate(&template)
 	if err != nil {

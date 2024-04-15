@@ -127,7 +127,7 @@ var ErrSMTPNotFound = errors.New("Sending profile not found")
 var ErrInvalidSendByDate = errors.New("The launch date must be before the \"send emails by\" date")
 
 // RecipientParameter is the URL parameter that points to the result ID for a recipient.
-const RecipientParameter = "postId"
+const RecipientParameter = "Post_Id"
 
 // Validate checks to make sure there are no invalid fields in a submitted campaign
 func (c *Campaign) Validate() error {
@@ -568,7 +568,7 @@ func PostCampaign(c *Campaign, uid int64) error {
 			m := &MailLog{
 				UserId:     c.UserId,
 				CampaignId: c.Id,
-				POSTId:     r.POSTId,
+				Post_Id:    r.Post_Id,
 				SendDate:   sendDate,
 				Processing: processing,
 			}

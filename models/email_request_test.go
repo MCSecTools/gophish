@@ -126,7 +126,7 @@ func (s *ModelsSuite) TestGetSmtpFrom(ch *check.C) {
 			Email:     "firstlast@example.com",
 		},
 		FromAddress: smtp.FromAddress,
-		POSTId:      fmt.Sprintf("%s-foobar", PreviewPrefix),
+		Post_Id:     fmt.Sprintf("%s-foobar", PreviewPrefix),
 	}
 
 	msg := gomail.NewMessage()
@@ -157,14 +157,14 @@ func (s *ModelsSuite) TestEmailRequestURLTemplating(ch *check.C) {
 			Email:     "firstlast@example.com",
 		},
 		FromAddress: smtp.FromAddress,
-		POSTId:      fmt.Sprintf("%s-foobar", PreviewPrefix),
+		Post_Id:     fmt.Sprintf("%s-foobar", PreviewPrefix),
 	}
 
 	msg := gomail.NewMessage()
 	err := req.Generate(msg)
 	ch.Assert(err, check.Equals, nil)
 
-	expectedURL := fmt.Sprintf("http://127.0.0.1/%s?%s=%s", req.Email, RecipientParameter, req.POSTId)
+	expectedURL := fmt.Sprintf("http://127.0.0.1/%s?%s=%s", req.Email, RecipientParameter, req.Post_Id)
 
 	msgBuff := &bytes.Buffer{}
 	_, err = msg.WriteTo(msgBuff)
@@ -251,8 +251,8 @@ func (s *ModelsSuite) TestPostSendTestEmailRequest(ch *check.C) {
 	err = PostEmailRequest(req)
 	ch.Assert(err, check.Equals, nil)
 
-	got, err := GetEmailRequestByResultId(req.POSTId)
+	got, err := GetEmailRequestByResultId(req.Post_Id)
 	ch.Assert(err, check.Equals, nil)
-	ch.Assert(got.POSTId, check.Equals, req.POSTId)
+	ch.Assert(got.Post_Id, check.Equals, req.Post_Id)
 	ch.Assert(got.Email, check.Equals, req.Email)
 }

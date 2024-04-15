@@ -19,7 +19,7 @@ import (
 func (s *ModelsSuite) emailFromFirstMailLog(campaign Campaign, ch *check.C) *email.Email {
 	result := campaign.Results[0]
 	m := &MailLog{}
-	err := db.Where("post_Id=? AND campaign_id=?", result.POSTId, campaign.Id).
+	err := db.Where("post_Id=? AND campaign_id=?", result.Post_Id, campaign.Id).
 		Find(m).Error
 	ch.Assert(err, check.Equals, nil)
 
@@ -48,17 +48,17 @@ func (s *ModelsSuite) TestGetQueuedMailLogs(ch *check.C) {
 	ch.Assert(err, check.Equals, nil)
 	got := make(map[string]*MailLog)
 	for _, m := range ms {
-		got[m.POSTId] = m
+		got[m.Post_Id] = m
 	}
 	for _, r := range campaign.Results {
-		if m, ok := got[r.POSTId]; ok {
-			ch.Assert(m.POSTId, check.Equals, r.POSTId)
+		if m, ok := got[r.Post_Id]; ok {
+			ch.Assert(m.Post_Id, check.Equals, r.Post_Id)
 			ch.Assert(m.CampaignId, check.Equals, campaign.Id)
 			ch.Assert(m.SendDate, check.Equals, campaign.LaunchDate)
 			ch.Assert(m.UserId, check.Equals, campaign.UserId)
 			ch.Assert(m.SendAttempt, check.Equals, 0)
 		} else {
-			ch.Fatalf("Result not found in maillogs: %s", r.POSTId)
+			ch.Fatalf("Result not found in maillogs: %s", r.Post_Id)
 		}
 	}
 }
@@ -67,7 +67,7 @@ func (s *ModelsSuite) TestMailLogBackoff(ch *check.C) {
 	campaign := s.createCampaign(ch)
 	result := campaign.Results[0]
 	m := &MailLog{}
-	err := db.Where("post_Id=? AND campaign_id=?", result.POSTId, campaign.Id).
+	err := db.Where("post_Id=? AND campaign_id=?", result.Post_Id, campaign.Id).
 		Find(m).Error
 	ch.Assert(err, check.Equals, nil)
 	ch.Assert(m.SendAttempt, check.Equals, 0)
@@ -88,7 +88,7 @@ func (s *ModelsSuite) TestMailLogBackoff(ch *check.C) {
 		ch.Assert(err, check.Equals, nil)
 		ch.Assert(m.SendDate, check.Equals, expectedSendDate)
 		ch.Assert(m.Processing, check.Equals, false)
-		result, err := GetResult(m.POSTId)
+		result, err := GetResult(m.Post_Id)
 		ch.Assert(err, check.Equals, nil)
 		ch.Assert(result.SendDate, check.Equals, expectedSendDate)
 		ch.Assert(result.Status, check.Equals, StatusRetry)
@@ -109,10 +109,10 @@ func (s *ModelsSuite) TestMailLogError(ch *check.C) {
 	campaign := s.createCampaign(ch)
 	result := campaign.Results[0]
 	m := &MailLog{}
-	err := db.Where("post_Id=? AND campaign_id=?", result.POSTId, campaign.Id).
+	err := db.Where("post_Id=? AND campaign_id=?", result.Post_Id, campaign.Id).
 		Find(m).Error
 	ch.Assert(err, check.Equals, nil)
-	ch.Assert(m.POSTId, check.Equals, result.POSTId)
+	ch.Assert(m.Post_Id, check.Equals, result.Post_Id)
 
 	expectedError := &textproto.Error{
 		Code: 500,
@@ -122,7 +122,7 @@ func (s *ModelsSuite) TestMailLogError(ch *check.C) {
 	ch.Assert(err, check.Equals, nil)
 
 	// Get our result and make sure the status is set correctly
-	result, err = GetResult(result.POSTId)
+	result, err = GetResult(result.Post_Id)
 	ch.Assert(err, check.Equals, nil)
 	ch.Assert(result.Status, check.Equals, Error)
 
@@ -155,16 +155,16 @@ func (s *ModelsSuite) TestMailLogSuccess(ch *check.C) {
 	campaign := s.createCampaign(ch)
 	result := campaign.Results[0]
 	m := &MailLog{}
-	err := db.Where("post_Id=? AND campaign_id=?", result.POSTId, campaign.Id).
+	err := db.Where("post_Id=? AND campaign_id=?", result.Post_Id, campaign.Id).
 		Find(m).Error
 	ch.Assert(err, check.Equals, nil)
-	ch.Assert(m.POSTId, check.Equals, result.POSTId)
+	ch.Assert(m.Post_Id, check.Equals, result.Post_Id)
 
 	err = m.Success()
 	ch.Assert(err, check.Equals, nil)
 
 	// Get our result and make sure the status is set correctly
-	result, err = GetResult(result.POSTId)
+	result, err = GetResult(result.Post_Id)
 	ch.Assert(err, check.Equals, nil)
 	ch.Assert(result.Status, check.Equals, EventSent)
 
@@ -197,15 +197,15 @@ func (s *ModelsSuite) TestGenerateMailLog(ch *check.C) {
 		UserId: 1,
 	}
 	result := Result{
-		POSTId: "abc1234",
+		Post_Id: "abc1234",
 	}
 	err := GenerateMailLog(&campaign, &result, campaign.LaunchDate)
 	ch.Assert(err, check.Equals, nil)
 
 	m := MailLog{}
-	err = db.Where("post_Id=?", result.POSTId).Find(&m).Error
+	err = db.Where("post_Id=?", result.Post_Id).Find(&m).Error
 	ch.Assert(err, check.Equals, nil)
-	ch.Assert(m.POSTId, check.Equals, result.POSTId)
+	ch.Assert(m.Post_Id, check.Equals, result.Post_Id)
 	ch.Assert(m.CampaignId, check.Equals, campaign.Id)
 	ch.Assert(m.SendDate, check.Equals, campaign.LaunchDate)
 	ch.Assert(m.UserId, check.Equals, campaign.UserId)
@@ -230,7 +230,7 @@ func (s *ModelsSuite) TestMailLogGetSmtpFrom(ch *check.C) {
 	result := campaign.Results[0]
 
 	m := &MailLog{}
-	err := db.Where("post_Id=? AND campaign_id=?", result.POSTId, campaign.Id).
+	err := db.Where("post_Id=? AND campaign_id=?", result.Post_Id, campaign.Id).
 		Find(m).Error
 	ch.Assert(err, check.Equals, nil)
 
@@ -252,9 +252,9 @@ func (s *ModelsSuite) TestMailLogGenerate(ch *check.C) {
 	result := campaign.Results[0]
 	expected := &email.Email{
 		From:    "test@test.com", // Default smtp.FromAddress
-		Subject: fmt.Sprintf("%s - Subject", result.POSTId),
-		Text:    []byte(fmt.Sprintf("%s - Text", result.POSTId)),
-		HTML:    []byte(fmt.Sprintf("%s - HTML", result.POSTId)),
+		Subject: fmt.Sprintf("%s - Subject", result.Post_Id),
+		Text:    []byte(fmt.Sprintf("%s - Text", result.Post_Id)),
+		HTML:    []byte(fmt.Sprintf("%s - HTML", result.Post_Id)),
 	}
 	got := s.emailFromFirstMailLog(campaign, ch)
 	ch.Assert(got.From, check.Equals, expected.From)
@@ -333,7 +333,7 @@ func (s *ModelsSuite) TestURLTemplateRendering(ch *check.C) {
 
 	ch.Assert(PostCampaign(&campaign, campaign.UserId), check.Equals, nil)
 	result := campaign.Results[0]
-	expectedURL := fmt.Sprintf("http://127.0.0.1/%s/?%s=%s", result.Email, RecipientParameter, result.POSTId)
+	expectedURL := fmt.Sprintf("http://127.0.0.1/%s/?%s=%s", result.Email, RecipientParameter, result.Post_Id)
 
 	got := s.emailFromFirstMailLog(campaign, ch)
 	ch.Assert(got.Subject, check.Equals, expectedURL)
@@ -353,8 +353,8 @@ func (s *ModelsSuite) TestMailLogGenerateEmptySubject(ch *check.C) {
 
 	expected := &email.Email{
 		Subject: "",
-		Text:    []byte(fmt.Sprintf("%s - Text", result.POSTId)),
-		HTML:    []byte(fmt.Sprintf("%s - HTML", result.POSTId)),
+		Text:    []byte(fmt.Sprintf("%s - Text", result.Post_Id)),
+		HTML:    []byte(fmt.Sprintf("%s - HTML", result.Post_Id)),
 	}
 	got := s.emailFromFirstMailLog(campaign, ch)
 	ch.Assert(got.Subject, check.Equals, expected.Subject)

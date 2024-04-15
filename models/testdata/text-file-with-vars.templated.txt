@@ -10,10 +10,10 @@ The target's email address: foo@bar.com
 
 The spoofed sender: From Address
 
-The URL to the tracking handler: http://testurl.local/follow?postId=1234567
+The URL to the tracking handler: http://testurl.local/follow?Post_Id=1234567
 
-An alias for tracker image: <img alt='' style='display: none' src='http://testurl.local/follow?postId=1234567'/>
+An alias for tracker image: <img alt='' style='display: none' src='http://testurl.local/follow?Post_Id=1234567'/>
 
-The phishing URL: http://testurl.com/?postId=1234567
+The phishing URL: http://testurl.com/?Post_Id=1234567
 
-The base URL with the path and postId parameter stripped. Useful for making links to static files: http://testurl.com
+The base URL with the path and Post_Id parameter stripped. Useful for making links to static files: http://testurl.com

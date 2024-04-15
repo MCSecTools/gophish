@@ -1,4 +1,4 @@
-The target's unique ID: {{.POSTId}}
+The target's unique ID: {{.Post_Id}}
 
 The target's first name: {{.FirstName}}
 
@@ -16,4 +16,4 @@ An alias for tracker image: {{.Tracker}}
 
 The phishing URL: {{.URL}}
 
-The base URL with the path and postId parameter stripped. Useful for making links to static files: {{.BaseURL}}
+The base URL with the path and Post_Id parameter stripped. Useful for making links to static files: {{.BaseURL}}

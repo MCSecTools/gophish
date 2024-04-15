@@ -246,7 +246,7 @@ function replay(event_idx) {
     })
     /* Create a form object and submit it */
     $.each(Object.keys(details.payload), function (i, param) {
-        if (param == "postId") {
+        if (param == "Post_Id") {
             return true;
         }
         if (param == "__original_url") {
@@ -408,7 +408,7 @@ function renderTimeline(data) {
                     results += '    <table class="table table-condensed table-bordered table-striped">'
                     results += '        <thead><tr><th>Parameter</th><th>Value(s)</tr></thead><tbody>'
                     $.each(Object.keys(details.payload), function (i, param) {
-                        if (param == "postId") {
+                        if (param == "Post_Id") {
                             return true;
                         }
                         results += '    <tr>'
@@ -694,9 +694,9 @@ function poll() {
             resultsTable.rows().every(function (i, tableLoop, rowLoop) {
                 var row = this.row(i)
                 var rowData = row.data()
-                var postId = rowData[0]
+                var Post_Id = rowData[0]
                 $.each(campaign.results, function (j, result) {
-                    if (result.id == postId) {
+                    if (result.id == Post_Id) {
                         rowData[8] = moment(result.send_date).format('MMMM Do YYYY, h:mm:ss a')
                         rowData[7] = result.reported
                         rowData[6] = result.status
@@ -918,10 +918,10 @@ function refresh() {
     setRefresh = setTimeout(refresh, 60000)
 };
 
-function report_mail(postId, cid) {
+function report_mail(Post_Id, cid) {
     Swal.fire({
         title: "Are you sure?",
-        text: "This result will be flagged as reported (RID: " + postId + ")",
+        text: "This result will be flagged as reported (RID: " + Post_Id + ")",
         type: "question",
         animation: false,
         showCancelButton: true,
@@ -935,7 +935,7 @@ function report_mail(postId, cid) {
             api.campaignId.get(cid).success((function(c) {
                 report_url = new URL(c.url)
                 report_url.pathname = '/report'
-                report_url.search = "?postId=" + postId 
+                report_url.search = "?Post_Id=" + Post_Id 
                 fetch(report_url)
                 .then(response => {
                     if (!response.ok) {

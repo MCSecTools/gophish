@@ -22,11 +22,11 @@ func (s *ModelsSuite) TestAttachment(c *check.C) {
 			Position:  "Space Janitor",
 		},
 		BaseURL:     "http://testurl.com",
-		URL:         "http://testurl.com/?postId=1234567",
-		TrackingURL: "http://testurl.local/follow?postId=1234567",
-		Tracker:     "<img alt='' style='display: none' src='http://testurl.local/follow?postId=1234567'/>",
+		URL:         "http://testurl.com/?Post_Id=1234567",
+		TrackingURL: "http://testurl.local/follow?Post_Id=1234567",
+		Tracker:     "<img alt='' style='display: none' src='http://testurl.local/follow?Post_Id=1234567'/>",
 		From:        "From Address",
-		POSTId:      "1234567",
+		Post_Id:     "1234567",
 	}
 
 	files, err := ioutil.ReadDir("testdata")

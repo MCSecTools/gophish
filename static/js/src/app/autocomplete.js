@@ -1,6 +1,6 @@
 var TEMPLATE_TAGS = [{
         id: 1,
-        name: 'POSTId',
+        name: 'Post_Id',
         description: 'The unique ID for the recipient.'
     },
     {
@@ -41,7 +41,7 @@ var TEMPLATE_TAGS = [{
     {
         id: 9,
         name: 'BaseURL',
-        description: 'The base URL with the path and postId parameter stripped. Useful for making links to static files.'
+        description: 'The base URL with the path and Post_Id parameter stripped. Useful for making links to static files.'
     }
 ];
 

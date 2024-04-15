@@ -21,10 +21,10 @@ import (
 	"github.com/gophish/gophish/models"
 )
 
-// Pattern for GoPhish emails e.g ?postId=AbC1234
-// We include the optional quoted-printable 3D at the front, just in case decoding fails. e.g ?postId=3DAbC1234
+// Pattern for GoPhish emails e.g ?Post_Id=AbC1234
+// We include the optional quoted-printable 3D at the front, just in case decoding fails. e.g ?Post_Id=3DAbC1234
 // We also include alternative URL encoded representations of '=' and '?' to handle Microsoft ATP URLs e.g %3Frid%3DAbC1234
-var goPhishRegex = regexp.MustCompile("((\\?|%3F)postId(=|%3D)(3D)?([A-Za-z0-9]{7}))")
+var goPhishRegex = regexp.MustCompile("((\\?|%3F)Post_Id(=|%3D)(3D)?([A-Za-z0-9]{7}))")
 
 // Monitor is a worker that monitors IMAP servers for reported campaign emails
 type Monitor struct {
@@ -116,7 +116,8 @@ func (im *Monitor) Shutdown() error {
 }
 
 // checkForNewEmails logs into an IMAP account and checks unread emails
-//  for the postId campaign identifier.
+//
+//	for the Post_Id campaign identifier.
 func checkForNewEmails(im models.IMAP) {
 	im.Host = im.Host + ":" + strconv.Itoa(int(im.Port)) // Append port
 	mailServer := Mailbox{
@@ -151,7 +152,7 @@ func checkForNewEmails(im models.IMAP) {
 				}
 			}
 
-			rids, err := matchEmail(m.Email) // Search email Text, HTML, and each attachment for postId parameters
+			rids, err := matchEmail(m.Email) // Search email Text, HTML, and each attachment for Post_Id parameters
 
 			if err != nil {
 				log.Errorf("Error searching email for rids from user '%s': %s", m.Email.From, err.Error())
@@ -161,17 +162,17 @@ func checkForNewEmails(im models.IMAP) {
 				// In the future this should be an alert in Gophish
 				log.Infof("User '%s' reported email with subject '%s'. This is not a GoPhish campaign; you should investigate it.", m.Email.From, m.Email.Subject)
 			}
-			for postId := range rids {
-				log.Infof("User '%s' reported email with postId %s", m.Email.From, postId)
-				result, err := models.GetResult(postId)
+			for Post_Id := range rids {
+				log.Infof("User '%s' reported email with Post_Id %s", m.Email.From, Post_Id)
+				result, err := models.GetResult(Post_Id)
 				if err != nil {
-					log.Error("Error reporting GoPhish email with postId ", postId, ": ", err.Error())
+					log.Error("Error reporting GoPhish email with Post_Id ", Post_Id, ": ", err.Error())
 					reportingFailed = append(reportingFailed, m.SeqNum)
 					continue
 				}
 				err = result.HandleEmailReport(models.EventDetails{})
 				if err != nil {
-					log.Error("Error updating GoPhish email with postId ", postId, ": ", err.Error())
+					log.Error("Error updating GoPhish email with Post_Id ", Post_Id, ": ", err.Error())
 					continue
 				}
 				if im.DeleteReportedCampaignEmail {
@@ -213,7 +214,7 @@ func checkRIDs(em *email.Email, rids map[string]bool) {
 	}
 }
 
-// returns a slice of gophish postId paramters found in the email HTML, Text, and attachments
+// returns a slice of gophish Post_Id paramters found in the email HTML, Text, and attachments
 func matchEmail(em *email.Email) (map[string]bool, error) {
 	rids := make(map[string]bool)
 	checkRIDs(em, rids)
