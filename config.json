@@ -18,6 +18,6 @@
 	"contact_address": "",
 	"logging": {
 		"filename": "",
-		"level": ""
+		"level": "INFO"
 	}
 }
