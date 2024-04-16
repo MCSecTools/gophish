@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -83,6 +85,33 @@ func WithContactAddress(addr string) PhishingServerOption {
 	}
 }
 
+// Verifica el token de Turnstile con Cloudflare
+func VerifyTurnstileToken(token, remoteIP string) (bool, error) {
+	secretKey := "tu_clave_secreta"
+	endpoint := "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+
+	resp, err := http.PostForm(endpoint, url.Values{
+		"secret":   {secretKey},
+		"response": {token},
+		"remoteip": {remoteIP},
+	})
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		Success    bool     `json:"success"`
+		ErrorCodes []string `json:"error-codes"` // Opcional, maneja según tu necesidad
+	}
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		return false, err
+	}
+
+	return result.Success, nil
+}
+
 // Overwrite net.https Error with a custom one to set our own headers
 // Go's internal Error func returns text/plain so browser's won't render the html
 func customError(w http.ResponseWriter, error string, code int) {
@@ -137,29 +166,114 @@ func (ps *PhishingServer) Shutdown() error {
 	return ps.server.Shutdown(ctx)
 }
 
-// CreatePhishingRouter creates the router that handles phishing connections.
+// TurnstileMiddleware verifica el token de Turnstile en las solicitudes antes de permitir el acceso a rutas protegidas.
+func (ps *PhishingServer) TurnstileMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Extraer el token de Turnstile de los headers o del query string
+		token := r.Header.Get("Authorization")
+		if strings.HasPrefix(token, "Bearer ") {
+			token = strings.TrimPrefix(token, "Bearer ")
+		} else {
+			token = r.URL.Query().Get("turnstile_token")
+		}
+
+		if token == "" {
+			log.Error("No Turnstile token provided")
+			http.Error(w, "Access denied: No Turnstile token provided", http.StatusUnauthorized)
+			return
+		}
+
+		// Verificar el token de Turnstile
+		remoteIP, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
+			log.Errorf("Error extracting IP address: %v", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+
+		isValid, err := VerifyTurnstileToken(token, remoteIP)
+		if err != nil {
+			log.Errorf("Failed to verify Turnstile token: %v", err)
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			return
+		}
+		if !isValid {
+			log.Errorf("Invalid Turnstile token")
+			http.Error(w, "Access denied: Invalid Turnstile token", http.StatusUnauthorized)
+			return
+		}
+
+		// Si el token es válido, continúa con el manejo de la solicitud
+		next.ServeHTTP(w, r)
+	})
+}
+
 func (ps *PhishingServer) registerRoutes() {
 	router := mux.NewRouter()
 	fileServer := http.FileServer(unindexed.Dir("./static/endpoint/"))
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", fileServer))
-	router.HandleFunc("/track", ps.TrackHandler)
-	router.HandleFunc("/robots.txt", ps.RobotsHandler)
-	router.HandleFunc("/{path:.*}/track", ps.TrackHandler)
-	router.HandleFunc("/{path:.*}/report", ps.ReportHandler)
-	router.HandleFunc("/report", ps.ReportHandler)
-	router.HandleFunc("/{path:.*}", ps.PhishHandler)
 
-	// Setup GZIP compression
+	// Ruta específica para verificar
+	router.HandleFunc("/verify", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "templates/verify.html")
+	})
+
+	// Setup GZIP compression y otras configuraciones de middleware
 	gzipWrapper, _ := gziphandler.NewGzipLevelHandler(gzip.BestCompression)
 	phishHandler := gzipWrapper(router)
-
-	// Respect X-Forwarded-For and X-Real-IP headers in case we're behind a
-	// reverse proxy.
 	phishHandler = handlers.ProxyHeaders(phishHandler)
-
-	// Setup logging
 	phishHandler = handlers.CombinedLoggingHandler(log.Writer(), phishHandler)
+
+	// Aplicar middleware que verifica y posiblemente redirige si el token es inválido
+	verifyAndRedirectHandler := ps.VerifyHandler(phishHandler)
+
+	// Configurar las rutas que estarán protegidas
+	router.Handle("/track", verifyAndRedirectHandler)
+	router.Handle("/{path:.*}/track", verifyAndRedirectHandler)
+	router.Handle("/{path:.*}/report", verifyAndRedirectHandler)
+	router.Handle("/report", verifyAndRedirectHandler)
+	router.Handle("/{path:.*}", verifyAndRedirectHandler) // Protege esta ruta general con el middleware
+
 	ps.server.Handler = phishHandler
+}
+
+// VerifyHandler verifica la respuesta de Turnstile. Si no está validada, redirige a /verify.
+func (ps *PhishingServer) VerifyHandler(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Extraer el token de Turnstile de los headers o del query string
+		token := r.Header.Get("Authorization")
+		if strings.HasPrefix(token, "Bearer ") {
+			token = strings.TrimPrefix(token, "Bearer ")
+		} else {
+			token = r.URL.Query().Get("turnstile_token")
+		}
+
+		// Verificar el token de Turnstile
+		remoteIP, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
+			log.Errorf("Error extracting IP address: %v", err)
+			http.NotFound(w, r)
+			return
+		}
+		if token == "" {
+			log.Errorf("No Turnstile token provided, redirecting to /verify")
+			http.Redirect(w, r, "/verify", http.StatusFound)
+			return
+		}
+		isValid, err := VerifyTurnstileToken(token, remoteIP)
+		if err != nil {
+			log.Errorf("Failed to verify Turnstile token: %v", err)
+			http.NotFound(w, r)
+			return
+		}
+		if !isValid {
+			log.Errorf("Invalid Turnstile token, redirecting to /verify")
+			http.Redirect(w, r, "/verify", http.StatusFound)
+			return
+		}
+		// Si el token es válido, continúa con el manejo de la solicitud
+		next.ServeHTTP(w, r)
+	})
 }
 
 // TrackHandler tracks emails as they are opened, updating the status for the given Result
@@ -229,43 +343,54 @@ func (ps *PhishingServer) ReportHandler(w http.ResponseWriter, r *http.Request) 
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// PhishHandler handles incoming client connections and registers the associated actions performed
-// (such as clicked link, etc.)
+// PhishHandler handles incoming client connections and manages the actions performed,
+// such as checking clicked links or form submissions, after verifying a Turnstile token.
 func (ps *PhishingServer) PhishHandler(w http.ResponseWriter, r *http.Request) {
+	// Setup the context for the request
 	r, err := setupContext(r)
 	if err != nil {
-		// Log the error if it wasn't something we can safely ignore
+		// Log any significant errors that aren't just invalid requests or completed campaigns
 		if err != ErrInvalidRequest && err != ErrCampaignComplete {
 			log.Error(err)
 		}
 		customNotFound(w, r)
 		return
 	}
-	//	w.Header().Set("X-Server", config.ServerName) // Useful for checking if this is a GoPhish server (e.g. for campaign reporting plugins) // so fuck it!
-	var ptx models.PhishingTemplateContext
-	// Check for a preview
-	if preview, ok := ctx.Get(r, "result").(models.EmailRequest); ok {
-		ptx, err = models.NewPhishingTemplateContext(&preview, preview.BaseRecipient, preview.POSTId)
-		if err != nil {
-			log.Error(err)
-			customNotFound(w, r)
-			return
-		}
-		p, err := models.GetPage(preview.PageId, preview.UserId)
-		if err != nil {
-			log.Error(err)
-			customNotFound(w, r)
-			return
-		}
-		renderPhishResponse(w, r, ptx, p)
+
+	// Extract Turnstile token from the request
+	token := r.FormValue("turnstile_token")
+	if token == "" {
+		log.Error("No Turnstile token provided")
+		customError(w, "Access denied: No Turnstile token provided", http.StatusUnauthorized)
 		return
 	}
+
+	// Verify Turnstile token
+	remoteIP, _, _ := net.SplitHostPort(r.RemoteAddr)
+	isValid, err := VerifyTurnstileToken(token, remoteIP)
+	if err != nil {
+		log.Error("Turnstile verification failed: ", err)
+		customError(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+	if !isValid {
+		log.Error("Invalid Turnstile token")
+		customError(w, "Access denied: Invalid Turnstile token", http.StatusUnauthorized)
+		return
+	}
+
+	// Proceed with handling the request after successful Turnstile verification
+	processRequest(ps, w, r)
+}
+
+// processRequest processes the phishing related requests after Turnstile verification.
+func processRequest(ps *PhishingServer, w http.ResponseWriter, r *http.Request) {
 	rs := ctx.Get(r, "result").(models.Result)
 	postId := ctx.Get(r, "postId").(string)
 	c := ctx.Get(r, "campaign").(models.Campaign)
 	d := ctx.Get(r, "details").(models.EventDetails)
 
-	// Check for a transparency request
+	// Handle transparency requests
 	if strings.HasSuffix(postId, TransparencySuffix) {
 		ps.TransparencyHandler(w, r)
 		return
@@ -277,23 +402,28 @@ func (ps *PhishingServer) PhishHandler(w http.ResponseWriter, r *http.Request) {
 		customNotFound(w, r)
 		return
 	}
-	switch {
-	case r.Method == "GET":
+
+	// Process the request based on the method
+	switch r.Method {
+	case "GET":
 		err = rs.HandleClickedLink(d)
-		if err != nil {
-			log.Error(err)
-		}
-	case r.Method == "POST":
+	case "POST":
 		err = rs.HandleFormSubmit(d)
-		if err != nil {
-			log.Error(err)
-		}
 	}
-	ptx, err = models.NewPhishingTemplateContext(&c, rs.BaseRecipient, rs.POSTId)
+
 	if err != nil {
 		log.Error(err)
 		customNotFound(w, r)
+		return
 	}
+
+	ptx, err := models.NewPhishingTemplateContext(&c, rs.BaseRecipient, rs.postId)
+	if err != nil {
+		log.Error(err)
+		customNotFound(w, r)
+		return
+	}
+
 	renderPhishResponse(w, r, ptx, p)
 }
 
