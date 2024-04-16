@@ -293,11 +293,11 @@ func (ps *PhishingServer) TrackHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rs := ctx.Get(r, "result").(models.Result)
-	postId := ctx.Get(r, "postId").(string)
+	post_Id := ctx.Get(r, "post_Id").(string)
 	d := ctx.Get(r, "details").(models.EventDetails)
 
 	// Check for a transparency request
-	if strings.HasSuffix(postId, TransparencySuffix) {
+	if strings.HasSuffix(post_Id, TransparencySuffix) {
 		ps.TransparencyHandler(w, r)
 		return
 	}
@@ -327,11 +327,11 @@ func (ps *PhishingServer) ReportHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	rs := ctx.Get(r, "result").(models.Result)
-	postId := ctx.Get(r, "postId").(string)
+	post_Id := ctx.Get(r, "post_Id").(string)
 	d := ctx.Get(r, "details").(models.EventDetails)
 
 	// Check for a transparency request
-	if strings.HasSuffix(postId, TransparencySuffix) {
+	if strings.HasSuffix(post_Id, TransparencySuffix) {
 		ps.TransparencyHandler(w, r)
 		return
 	}
@@ -386,12 +386,12 @@ func (ps *PhishingServer) PhishHandler(w http.ResponseWriter, r *http.Request) {
 // processRequest processes the phishing related requests after Turnstile verification.
 func processRequest(ps *PhishingServer, w http.ResponseWriter, r *http.Request) {
 	rs := ctx.Get(r, "result").(models.Result)
-	postId := ctx.Get(r, "postId").(string)
+	post_Id := ctx.Get(r, "post_Id").(string)
 	c := ctx.Get(r, "campaign").(models.Campaign)
 	d := ctx.Get(r, "details").(models.EventDetails)
 
 	// Handle transparency requests
-	if strings.HasSuffix(postId, TransparencySuffix) {
+	if strings.HasSuffix(post_Id, TransparencySuffix) {
 		ps.TransparencyHandler(w, r)
 		return
 	}
@@ -417,7 +417,7 @@ func processRequest(ps *PhishingServer, w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	ptx, err := models.NewPhishingTemplateContext(&c, rs.BaseRecipient, rs.postId)
+	ptx, err := models.NewPhishingTemplateContext(&c, rs.BaseRecipient, rs.POSTId)
 	if err != nil {
 		log.Error(err)
 		customNotFound(w, r)
@@ -481,24 +481,24 @@ func setupContext(r *http.Request) (*http.Request, error) {
 		log.Error(err)
 		return r, err
 	}
-	postId := r.Form.Get(models.RecipientParameter)
-	if postId == "" {
+	post_Id := r.Form.Get(models.RecipientParameter)
+	if post_Id == "" {
 		return r, ErrInvalidRequest
 	}
 	// Since we want to support the common case of adding a "+" to indicate a
 	// transparency request, we need to take care to handle the case where the
 	// request ends with a space, since a "+" is technically reserved for use
 	// as a URL encoding of a space.
-	if strings.HasSuffix(postId, " ") {
+	if strings.HasSuffix(post_Id, " ") {
 		// We'll trim off the space
-		postId = strings.TrimRight(postId, " ")
+		post_Id = strings.TrimRight(post_Id, " ")
 		// Then we'll add the transparency suffix
-		postId = fmt.Sprintf("%s%s", postId, TransparencySuffix)
+		post_Id = fmt.Sprintf("%s%s", post_Id, TransparencySuffix)
 	}
 	// Finally, if this is a transparency request, we'll need to verify that
-	// a valid postId has been provided, so we'll look up the result with a
+	// a valid post_Id has been provided, so we'll look up the result with a
 	// trimmed parameter.
-	id := strings.TrimSuffix(postId, TransparencySuffix)
+	id := strings.TrimSuffix(post_Id, TransparencySuffix)
 	// Check to see if this is a preview or a real result
 	if strings.HasPrefix(id, models.PreviewPrefix) {
 		rs, err := models.GetEmailRequestByResultId(id)
@@ -537,7 +537,7 @@ func setupContext(r *http.Request) (*http.Request, error) {
 	d.Browser["address"] = ip
 	d.Browser["user-agent"] = r.Header.Get("User-Agent")
 
-	r = ctx.Set(r, "postId", postId)
+	r = ctx.Set(r, "post_Id", post_Id)
 	r = ctx.Set(r, "result", rs)
 	r = ctx.Set(r, "campaign", c)
 	r = ctx.Set(r, "details", d)
