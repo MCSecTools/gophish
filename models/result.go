@@ -193,7 +193,7 @@ func (r *Result) GenerateId(tx *gorm.DB) error {
 			return err
 		}
 		r.POSTId = postId
-		err = tx.Table("results").Where("post_Id=?", r.POSTId).First(&Result{}).Error
+		err = tx.Table("results").Where("Post_Id=?", r.POSTId).First(&Result{}).Error
 		if err == gorm.ErrRecordNotFound {
 			break
 		}
@@ -205,6 +205,6 @@ func (r *Result) GenerateId(tx *gorm.DB) error {
 // given the ResultId
 func GetResult(postId string) (Result, error) {
 	r := Result{}
-	err := db.Where("post_Id=?", postId).First(&r).Error
+	err := db.Where("Post_Id=?", postId).First(&r).Error
 	return r, err
 }
