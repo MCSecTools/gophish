@@ -1,4 +1,4 @@
-The target's unique ID: {{.POSTId}}
+The target's unique ID: {{.PostId}}
 
 The target's first name: {{.FirstName}}
 

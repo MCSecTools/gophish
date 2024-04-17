@@ -27,7 +27,7 @@ type EmailRequest struct {
 	TrackingURL string       `json:"tracking_url" gorm:"-"`
 	UserId      int64        `json:"-"`
 	ErrorChan   chan (error) `json:"-" gorm:"-"`
-	POSTId      string       `json:"id"`
+	PostId      string       `json:"id"`
 	FromAddress string       `json:"-"`
 	BaseRecipient
 }
@@ -83,7 +83,7 @@ func PostEmailRequest(s *EmailRequest) error {
 	if err != nil {
 		return err
 	}
-	s.POSTId = fmt.Sprintf("%s%s", PreviewPrefix, postId)
+	s.PostId = fmt.Sprintf("%s%s", PreviewPrefix, postId)
 	return db.Save(&s).Error
 }
 
@@ -104,7 +104,7 @@ func (s *EmailRequest) Generate(msg *gomail.Message) error {
 	}
 	msg.SetAddressHeader("From", f.Address, f.Name)
 
-	ptx, err := NewPhishingTemplateContext(s, s.BaseRecipient, s.POSTId)
+	ptx, err := NewPhishingTemplateContext(s, s.BaseRecipient, s.PostId)
 	if err != nil {
 		return err
 	}

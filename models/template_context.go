@@ -23,7 +23,7 @@ type PhishingTemplateContext struct {
 	URL         string
 	Tracker     string
 	TrackingURL string
-	POSTId      string
+	PostId      string
 	BaseURL     string
 	BaseRecipient
 }
@@ -80,7 +80,7 @@ func NewPhishingTemplateContext(ctx TemplateContext, r BaseRecipient, postId str
 		TrackingURL:   trackerUrlString,
 		Tracker:       "<img alt='' style='display: none' src='" + trackerUrlString + "'/>",
 		From:          fn,
-		POSTId:        postId,
+		PostId:        postId,
 	}, nil
 }
 
@@ -124,9 +124,9 @@ func ValidateTemplate(text string) error {
 			LastName:  "Bar",
 			Position:  "Test",
 		},
-		POSTId: "123456",
+		PostId: "123456",
 	}
-	ptx, err := NewPhishingTemplateContext(vc, td.BaseRecipient, td.POSTId)
+	ptx, err := NewPhishingTemplateContext(vc, td.BaseRecipient, td.PostId)
 	if err != nil {
 		return err
 	}

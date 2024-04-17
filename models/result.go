@@ -27,7 +27,7 @@ type Result struct {
 	Id           int64     `json:"-"`
 	CampaignId   int64     `json:"-"`
 	UserId       int64     `json:"-"`
-	POSTId       string    `json:"id"`
+	PostId       string    `json:"id"`
 	Status       string    `json:"status" sql:"not null"`
 	IP           string    `json:"ip"`
 	Latitude     float64   `json:"latitude"`
@@ -192,8 +192,8 @@ func (r *Result) GenerateId(tx *gorm.DB) error {
 		if err != nil {
 			return err
 		}
-		r.POSTId = postId
-		err = tx.Table("results").Where("Post_Id=?", r.POSTId).First(&Result{}).Error
+		r.PostId = postId
+		err = tx.Table("results").Where("Post_Id=?", r.PostId).First(&Result{}).Error
 		if err == gorm.ErrRecordNotFound {
 			break
 		}
