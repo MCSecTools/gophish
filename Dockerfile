@@ -1,45 +1,46 @@
-# Minify client side assets (JavaScript)
-FROM node:latest AS build-js
+# Use a single multi-stage build process to handle both the JavaScript assets and the Go binary
 
-RUN npm install gulp gulp-cli -g
+# Base image for building
+FROM debian:bookworm-slim AS builder
 
-WORKDIR /build
-COPY . .
-RUN npm install --only=dev
-RUN gulp
+# Install required tools for Node.js, Golang builds, and general build tools
+RUN apt-get update && apt-get install -y \
+    curl \
+    golang-go \
+    make \
+    zip
 
+# Install Node.js and npm
+# Debian's default repos might not have the latest Node.js, using NodeSource or similar might be better
+#RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash -
+#RUN apt-get install -y nodejs
 
-# Build Golang binary
-FROM golang:1.15.2 AS build-golang
+# Optionally install Gulp globally if needed
+#RUN npm install gulp gulp-cli -g
 
-WORKDIR /go/src/github.com/gophish/gophish
-COPY . .
-RUN go get -v && go build -v
+# Clean up to keep the image clean and compact
+RUN apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
+# Copy the entire source directory (assuming it includes the Makefile, and source files for Node and Go)
+COPY . /gophish
 
-# Runtime container
-FROM debian:stable-slim
+# Set the working directory for all the subsequent operations
+WORKDIR /gophish
 
-RUN useradd -m -d /opt/gophish -s /bin/bash app
+# Run npm install and gulp as per the Makefile's build steps for JS assets
+# Assuming you have a package.json and gulp is part of your workflow
+#RUN npm install
+#RUN gulp
 
-RUN apt-get update && \
-	apt-get install --no-install-recommends -y jq libcap2-bin ca-certificates && \
-	apt-get clean && \
-	rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+# Run the Makefile build step to handle Go compilation and any additional packaging defined in the Makefile
+RUN go get -v
 
-WORKDIR /opt/gophish
-COPY --from=build-golang /go/src/github.com/gophish/gophish/ ./
-COPY --from=build-js /build/static/js/dist/ ./static/js/dist/
-COPY --from=build-js /build/static/css/dist/ ./static/css/dist/
-COPY --from=build-golang /go/src/github.com/gophish/gophish/config.json ./
-RUN chown app. config.json
+RUN make build
 
-RUN setcap 'cap_net_bind_service=+ep' /opt/gophish/gophish
+RUN go build -v -tags netgo -ldflags '-extldflags "-static"' -o ./build/gophish gophish.go
 
-USER app
-RUN sed -i 's/127.0.0.1/0.0.0.0/g' config.json
-RUN touch config.json.tmp
-
-EXPOSE 3333 8080 8443 80
-
-CMD ["./docker/run.sh"]
+COPY release.sh release.sh
+RUN chmod +x release.sh
+# build
+ENTRYPOINT ["./release.sh"]
