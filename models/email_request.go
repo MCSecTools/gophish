@@ -10,7 +10,7 @@ import (
 	"github.com/gophish/gophish/mailer"
 )
 
-// PreviewPrefix is the standard prefix added to the rid parameter when sending
+// PreviewPrefix is the standard prefix added to the postID parameter when sending
 // test emails.
 const PreviewPrefix = "preview-"
 
@@ -29,7 +29,7 @@ type EmailRequest struct {
 	TrackingURL string       `json:"tracking_url" gorm:"-"`
 	UserId      int64        `json:"-"`
 	ErrorChan   chan (error) `json:"-" gorm:"-"`
-	RId         string       `json:"id"`
+	PostID      string       `json:"id"`
 	FromAddress string       `json:"-"`
 	BaseRecipient
 }
@@ -81,19 +81,19 @@ func (s *EmailRequest) GetSmtpFrom() (string, error) {
 // PostEmailRequest stores a SendTestEmailRequest in the database.
 func PostEmailRequest(s *EmailRequest) error {
 	// Generate an ID to be used in the underlying Result object
-	rid, err := generateResultId()
+	postID, err := generateResultId()
 	if err != nil {
 		return err
 	}
-	s.RId = fmt.Sprintf("%s%s", PreviewPrefix, rid)
+	s.PostID = fmt.Sprintf("%s%s", PreviewPrefix, postID)
 	return db.Save(&s).Error
 }
 
-// GetEmailRequestByResultId retrieves the EmailRequest by the underlying rid
+// GetEmailRequestByResultId retrieves the EmailRequest by the underlying postID
 // parameter.
 func GetEmailRequestByResultId(id string) (EmailRequest, error) {
 	s := EmailRequest{}
-	err := db.Table("email_requests").Where("r_id=?", id).First(&s).Error
+	err := db.Table("email_requests").Where("post_id=?", id).First(&s).Error
 	return s, err
 }
 
@@ -106,7 +106,7 @@ func (s *EmailRequest) Generate(msg *gomail.Message) error {
 	}
 	msg.SetAddressHeader("From", f.Address, f.Name)
 
-	ptx, err := NewPhishingTemplateContext(s, s.BaseRecipient, s.RId)
+	ptx, err := NewPhishingTemplateContext(s, s.BaseRecipient, s.PostID)
 	if err != nil {
 		return err
 	}

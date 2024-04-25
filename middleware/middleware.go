@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -8,6 +9,7 @@ import (
 
 	ctx "github.com/gophish/gophish/context"
 	"github.com/gophish/gophish/models"
+	"github.com/gophish/gophish/turnstile"
 	"github.com/gorilla/csrf"
 )
 
@@ -129,6 +131,39 @@ func RequireLogin(handler http.Handler) http.HandlerFunc {
 		q := r.URL.Query()
 		q.Set("next", r.URL.Path)
 		http.Redirect(w, r, fmt.Sprintf("/login?%s", q.Encode()), http.StatusTemporaryRedirect)
+	}
+}
+
+// RequireTurnstileToken checks for a valid Cloudflare Turnstile token in the request.
+// If the token is invalid or missing, it redirects to the login page.
+func RequireTurnstileToken(handler http.Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Initialize the Turnstile service with your secret key
+		srv := turnstile.New(turnstile.Config{
+			Secret: "your-secret", // Ensure to replace 'your-secret' with your actual secret key
+		})
+
+		// Extract the token from the request header
+		token := r.Header.Get("X-Turnstile-Token")
+
+		// Get client IP from the request
+		ip := r.RemoteAddr
+
+		// Verify the Turnstile token
+		ok, err := srv.Verify(context.Background(), token, ip)
+		if err != nil {
+			// Handle internal server error in token verification
+			http.Error(w, fmt.Sprintf("Internal Server Error: %v", err), http.StatusInternalServerError)
+			return
+		}
+		if !ok {
+			// Redirect to login page if the token is invalid
+			http.Redirect(w, r, "/login", http.StatusTemporaryRedirect)
+			return
+		}
+
+		// Call the next handler if the token is valid
+		handler.ServeHTTP(w, r)
 	}
 }
 

@@ -11,7 +11,7 @@ import (
 func (s *ModelsSuite) TestGenerateResultId(c *check.C) {
 	r := Result{}
 	r.GenerateId(db)
-	match, err := regexp.Match("[a-zA-Z0-9]{7}", []byte(r.RId))
+	match, err := regexp.Match("[a-zA-Z0-9]{7}", []byte(r.PostID))
 	c.Assert(err, check.Equals, nil)
 	c.Assert(match, check.Equals, true)
 }
@@ -87,9 +87,9 @@ func (s *ModelsSuite) TestDuplicateResults(ch *check.C) {
 
 	// Add a template
 	t := Template{Name: "Test Template"}
-	t.Subject = "{{.RId}} - Subject"
-	t.Text = "{{.RId}} - Text"
-	t.HTML = "{{.RId}} - HTML"
+	t.Subject = "{{.PostID}} - Subject"
+	t.Text = "{{.PostID}} - Text"
+	t.HTML = "{{.PostID}} - HTML"
 	t.UserId = 1
 	ch.Assert(PostTemplate(&t), check.Equals, nil)
 

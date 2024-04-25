@@ -147,11 +147,11 @@ func (ps *PhishingServer) TrackHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rs := ctx.Get(r, "result").(models.Result)
-	rid := ctx.Get(r, "rid").(string)
+	postID := ctx.Get(r, "postID").(string)
 	d := ctx.Get(r, "details").(models.EventDetails)
 
 	// Check for a transparency request
-	if strings.HasSuffix(rid, TransparencySuffix) {
+	if strings.HasSuffix(postID, TransparencySuffix) {
 		ps.TransparencyHandler(w, r)
 		return
 	}
@@ -181,11 +181,11 @@ func (ps *PhishingServer) ReportHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	rs := ctx.Get(r, "result").(models.Result)
-	rid := ctx.Get(r, "rid").(string)
+	postID := ctx.Get(r, "postID").(string)
 	d := ctx.Get(r, "details").(models.EventDetails)
 
 	// Check for a transparency request
-	if strings.HasSuffix(rid, TransparencySuffix) {
+	if strings.HasSuffix(postID, TransparencySuffix) {
 		ps.TransparencyHandler(w, r)
 		return
 	}
@@ -213,7 +213,7 @@ func (ps *PhishingServer) PhishHandler(w http.ResponseWriter, r *http.Request) {
 	var ptx models.PhishingTemplateContext
 	// Check for a preview
 	if preview, ok := ctx.Get(r, "result").(models.EmailRequest); ok {
-		ptx, err = models.NewPhishingTemplateContext(&preview, preview.BaseRecipient, preview.RId)
+		ptx, err = models.NewPhishingTemplateContext(&preview, preview.BaseRecipient, preview.PostID)
 		if err != nil {
 			log.Error(err)
 			http.NotFound(w, r)
@@ -229,12 +229,12 @@ func (ps *PhishingServer) PhishHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	rs := ctx.Get(r, "result").(models.Result)
-	rid := ctx.Get(r, "rid").(string)
+	postID := ctx.Get(r, "postID").(string)
 	c := ctx.Get(r, "campaign").(models.Campaign)
 	d := ctx.Get(r, "details").(models.EventDetails)
 
 	// Check for a transparency request
-	if strings.HasSuffix(rid, TransparencySuffix) {
+	if strings.HasSuffix(postID, TransparencySuffix) {
 		ps.TransparencyHandler(w, r)
 		return
 	}
@@ -257,7 +257,7 @@ func (ps *PhishingServer) PhishHandler(w http.ResponseWriter, r *http.Request) {
 			log.Error(err)
 		}
 	}
-	ptx, err = models.NewPhishingTemplateContext(&c, rs.BaseRecipient, rs.RId)
+	ptx, err = models.NewPhishingTemplateContext(&c, rs.BaseRecipient, rs.PostID)
 	if err != nil {
 		log.Error(err)
 		http.NotFound(w, r)
@@ -318,24 +318,24 @@ func setupContext(r *http.Request) (*http.Request, error) {
 		log.Error(err)
 		return r, err
 	}
-	rid := r.Form.Get(models.RecipientParameter)
-	if rid == "" {
+	postID := r.Form.Get(models.RecipientParameter)
+	if postID == "" {
 		return r, ErrInvalidRequest
 	}
 	// Since we want to support the common case of adding a "+" to indicate a
 	// transparency request, we need to take care to handle the case where the
 	// request ends with a space, since a "+" is technically reserved for use
 	// as a URL encoding of a space.
-	if strings.HasSuffix(rid, " ") {
+	if strings.HasSuffix(postID, " ") {
 		// We'll trim off the space
-		rid = strings.TrimRight(rid, " ")
+		postID = strings.TrimRight(postID, " ")
 		// Then we'll add the transparency suffix
-		rid = fmt.Sprintf("%s%s", rid, TransparencySuffix)
+		postID = fmt.Sprintf("%s%s", postID, TransparencySuffix)
 	}
 	// Finally, if this is a transparency request, we'll need to verify that
-	// a valid rid has been provided, so we'll look up the result with a
+	// a valid postID has been provided, so we'll look up the result with a
 	// trimmed parameter.
-	id := strings.TrimSuffix(rid, TransparencySuffix)
+	id := strings.TrimSuffix(postID, TransparencySuffix)
 	// Check to see if this is a preview or a real result
 	if strings.HasPrefix(id, models.PreviewPrefix) {
 		rs, err := models.GetEmailRequestByResultId(id)
@@ -374,7 +374,7 @@ func setupContext(r *http.Request) (*http.Request, error) {
 	d.Browser["address"] = ip
 	d.Browser["user-agent"] = r.Header.Get("User-Agent")
 
-	r = ctx.Set(r, "rid", rid)
+	r = ctx.Set(r, "postID", postID)
 	r = ctx.Set(r, "result", rs)
 	r = ctx.Set(r, "campaign", c)
 	r = ctx.Set(r, "details", d)

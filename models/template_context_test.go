@@ -26,22 +26,22 @@ func (s *ModelsSuite) TestNewTemplateContext(c *check.C) {
 			LastName:  "Bar",
 			Email:     "foo@bar.com",
 		},
-		RId: "1234567",
+		PostID: "1234567",
 	}
 	ctx := mockTemplateContext{
 		URL:         "http://example.com",
 		FromAddress: "From Address <from@example.com>",
 	}
 	expected := PhishingTemplateContext{
-		URL:           fmt.Sprintf("%s?rid=%s", ctx.URL, r.RId),
+		URL:           fmt.Sprintf("%s?postID=%s", ctx.URL, r.PostID),
 		BaseURL:       ctx.URL,
 		BaseRecipient: r.BaseRecipient,
-		TrackingURL:   fmt.Sprintf("%s/track?rid=%s", ctx.URL, r.RId),
+		TrackingURL:   fmt.Sprintf("%s/track?postID=%s", ctx.URL, r.PostID),
 		From:          "From Address",
-		RId:           r.RId,
+		PostID:        r.PostID,
 	}
 	expected.Tracker = "<img alt='' style='display: none' src='" + expected.TrackingURL + "'/>"
-	got, err := NewPhishingTemplateContext(ctx, r.BaseRecipient, r.RId)
+	got, err := NewPhishingTemplateContext(ctx, r.BaseRecipient, r.PostID)
 	c.Assert(err, check.Equals, nil)
 	c.Assert(got, check.DeepEquals, expected)
 }

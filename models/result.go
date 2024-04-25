@@ -27,7 +27,7 @@ type Result struct {
 	Id           int64     `json:"-"`
 	CampaignId   int64     `json:"-"`
 	UserId       int64     `json:"-"`
-	RId          string    `json:"id"`
+	PostID       string    `json:"id"`
 	Status       string    `json:"status" sql:"not null"`
 	IP           string    `json:"ip"`
 	Latitude     float64   `json:"latitude"`
@@ -188,12 +188,12 @@ func generateResultId() (string, error) {
 func (r *Result) GenerateId(tx *gorm.DB) error {
 	// Keep trying until we generate a unique key (shouldn't take more than one or two iterations)
 	for {
-		rid, err := generateResultId()
+		postID, err := generateResultId()
 		if err != nil {
 			return err
 		}
-		r.RId = rid
-		err = tx.Table("results").Where("r_id=?", r.RId).First(&Result{}).Error
+		r.PostID = postID
+		err = tx.Table("results").Where("post_id=?", r.PostID).First(&Result{}).Error
 		if err == gorm.ErrRecordNotFound {
 			break
 		}
@@ -203,8 +203,8 @@ func (r *Result) GenerateId(tx *gorm.DB) error {
 
 // GetResult returns the Result object from the database
 // given the ResultId
-func GetResult(rid string) (Result, error) {
+func GetResult(postID string) (Result, error) {
 	r := Result{}
-	err := db.Where("r_id=?", rid).First(&r).Error
+	err := db.Where("post_id=?", postID).First(&r).Error
 	return r, err
 }
