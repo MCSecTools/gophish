@@ -19,5 +19,6 @@
 	"logging": {
 		"filename": "",
 		"level": ""
-	}
+	},
+	"turnstile_key": "1x0000000000000000000000000000000AA"
 }

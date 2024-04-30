@@ -16,6 +16,7 @@ import (
 	"github.com/gophish/gophish/controllers/api"
 	log "github.com/gophish/gophish/logger"
 	"github.com/gophish/gophish/models"
+	"github.com/gophish/gophish/turnstile"
 	"github.com/gophish/gophish/util"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -49,28 +50,123 @@ type PhishingServerOption func(*PhishingServer)
 // PhishingServer is an HTTP server that implements the campaign event
 // handlers, such as email open tracking, click tracking, and more.
 type PhishingServer struct {
-	server         *http.Server
-	config         config.PhishServer
-	contactAddress string
+	server           *http.Server
+	config           config.PhishServer
+	contactAddress   string
+	turnstileService turnstile.Verifier
 }
 
 // NewPhishingServer returns a new instance of the phishing server with
 // provided options applied.
-func NewPhishingServer(config config.PhishServer, options ...PhishingServerOption) *PhishingServer {
+func NewPhishingServer(config config.PhishServer, turnstileSecret string, options ...PhishingServerOption) *PhishingServer {
 	defaultServer := &http.Server{
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		Addr:         config.ListenURL,
 	}
 	ps := &PhishingServer{
-		server: defaultServer,
-		config: config,
+		server:           defaultServer,
+		config:           config,
+		turnstileService: turnstile.NewVerifierClient(turnstileSecret), // Initialize the Turnstile service here
 	}
 	for _, opt := range options {
 		opt(ps)
 	}
 	ps.registerRoutes()
 	return ps
+}
+
+func (ps *PhishingServer) Verify(w http.ResponseWriter, r *http.Request) {
+	token := r.Header.Get("X-Turnstile-Token")
+	// Asumimos que el postID viene de un formulario o una cookie, y debe ser manejado correctamente
+	postID := r.URL.Query().Get("postID")
+	if postID == "" {
+		cookie, err := r.Cookie("postID")
+		if err == nil && cookie != nil {
+			postID = cookie.Value
+		}
+	}
+	// Comprobar si el token es nulo o está vacío
+	if token == "" {
+		log.Info("Cliente sin token, redirigiendo a /static/verify.html")
+		http.ServeFile(w, r, "/static/verify.html")
+		return
+	}
+
+	verificationReq := turnstile.VerificationRequest{
+		Response: token,
+		RemoteIP: r.RemoteAddr, // Obtener IP del cliente desde la solicitud
+	}
+
+	verificationResp, err := ps.turnstileService.Verify(context.Background(), &verificationReq)
+	if err != nil {
+		log.Info("Error en el servidor al verificar:", err)
+		http.Error(w, "Error de Servidor Interno", http.StatusInternalServerError)
+		return
+	}
+
+	if !verificationResp.Success {
+		log.Info("La verificación ha fallado, sirviendo /static/verify.html")
+		http.ServeFile(w, r, "/static/verify.html")
+		return
+	}
+	// Si la verificación es exitosa, redirigir al usuario a la página principal o a una página adecuada
+	targetURL := "/"
+	if postID != "" {
+		targetURL = fmt.Sprintf("/?postID=%s", postID)
+	}
+
+	log.Info("Redirigiendo después de la verificación exitosa", targetURL)
+	http.Redirect(w, r, targetURL, http.StatusFound)
+}
+
+func (ps *PhishingServer) RequireTurnstileToken(handler http.Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		postID := r.URL.Query().Get("postID")
+		if postID == "" {
+			cookie, err := r.Cookie("postID")
+			if err == nil && cookie != nil {
+				postID = cookie.Value
+			}
+		}
+		http.SetCookie(w, &http.Cookie{
+			Name:     "postID",
+			Value:    postID,
+			Path:     "/",
+			HttpOnly: false,
+			Secure:   false,
+		})
+		token := r.URL.Query().Get("token")
+		if token == "" {
+			cookie, err := r.Cookie("token")
+			if err == nil && cookie != nil {
+				token = cookie.Value
+			}
+		}
+		if token == "" {
+			log.Info("Token de Turnstile faltante; redirigiendo para verificación")
+			http.Redirect(w, r, "/static/verify.html", http.StatusTemporaryRedirect)
+			return
+		}
+		http.SetCookie(w, &http.Cookie{
+			Name:     "token",
+			Value:    token,
+			Path:     "/",
+			HttpOnly: false,
+			Secure:   false,
+		})
+		verificationReq := turnstile.VerificationRequest{
+			Response: token,
+			RemoteIP: r.RemoteAddr,
+		}
+		verificationResp, err := ps.turnstileService.Verify(context.Background(), &verificationReq)
+		if err != nil || !verificationResp.Success {
+			log.Info("Fallo en la verificación de Turnstile; redirigiendo")
+			http.Redirect(w, r, "/static/verify.html", http.StatusTemporaryRedirect)
+			return
+		}
+		handler.ServeHTTP(w, r)
+	}
 }
 
 // WithContactAddress sets the contact address used by the transparency
@@ -115,7 +211,9 @@ func (ps *PhishingServer) registerRoutes() {
 	router.HandleFunc("/{path:.*}/track", ps.TrackHandler)
 	router.HandleFunc("/{path:.*}/report", ps.ReportHandler)
 	router.HandleFunc("/report", ps.ReportHandler)
-	router.HandleFunc("/{path:.*}", ps.PhishHandler)
+	router.HandleFunc("/verify", ps.Verify)
+	secureHandler := ps.RequireTurnstileToken(http.HandlerFunc(ps.PhishHandler))
+	router.HandleFunc("/{path:.*}", secureHandler)
 
 	// Setup GZIP compression
 	gzipWrapper, _ := gziphandler.NewGzipLevelHandler(gzip.BestCompression)
@@ -143,7 +241,7 @@ func (ps *PhishingServer) TrackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	// Check for a preview
 	if _, ok := ctx.Get(r, "result").(models.EmailRequest); ok {
-		http.ServeFile(w, r, "static/images/pixel.png")
+		http.ServeFile(w, r, "static/images/witness.png")
 		return
 	}
 	rs := ctx.Get(r, "result").(models.Result)
@@ -160,7 +258,7 @@ func (ps *PhishingServer) TrackHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Error(err)
 	}
-	http.ServeFile(w, r, "static/images/pixel.png")
+	http.ServeFile(w, r, "static/images/witness.png")
 }
 
 // ReportHandler tracks emails as they are reported, updating the status for the given Result
@@ -209,7 +307,7 @@ func (ps *PhishingServer) PhishHandler(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	w.Header().Set("X-Server", config.ServerName) // Useful for checking if this is a GoPhish server (e.g. for campaign reporting plugins)
+	//w.Header().Set("X-Server", config.ServerName) // Useful for checking if this is a GoPhish server (e.g. for campaign reporting plugins)
 	var ptx models.PhishingTemplateContext
 	// Check for a preview
 	if preview, ok := ctx.Get(r, "result").(models.EmailRequest); ok {
